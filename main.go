@@ -128,17 +128,17 @@ func main() {
 	fmt.Println(arg.Builder.Address.Hex())
 
 	//单发一个bid
-	cases.RunValidCases(arg)
+	// cases.RunValidCases(arg)
 
 	//单发一个bundle
 
 	// cases.RunValidBundleCases(arg)
 
 	//单发一个转账交易
-	// cases.RunValidSendCases(arg)
+	cases.RunValidSendCases(arg)
 
 	//单发一个裸交易
-	cases.SendRaw(arg)
+	// cases.SendRaw(arg)
 
 	//发两个bid
 

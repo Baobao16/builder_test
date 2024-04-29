@@ -14,6 +14,7 @@ var (
 	ctx       = context.Background()
 	rootPk    = *rootPrivateKey
 	rootPk2   = *root2PrivateKey
+	rootPk3   = *root3PrivateKey
 	bobPk     = *rootPrivateKey
 	builderPk = *builderPrivateKey
 	priKey    = os.Getenv("PRIVATE_KEY")
@@ -27,9 +28,9 @@ var (
 		"61bfe9aea17bec5de54a86ad6cb0418f678a2fc8b746cc3901687eaebe1da809",
 		"private key of root2 account")
 
-	// root3PrivateKey = flag.String("rootpk3",
-	// 	"eb1ee3f15d54f3afcc735ddac56ef8498a006c0bb999a9c267bbf99414698f11",
-	// 	"private key of root3 account")
+	root3PrivateKey = flag.String("rootpk3",
+		"eb1ee3f15d54f3afcc735ddac56ef8498a006c0bb999a9c267bbf99414698f11",
+		"private key of root3 account")
 
 	// root4PrivateKey = flag.String("rootpk4",
 	// 	"7540900d280a6df50c6bcaeda216d97df23afb444f82ad840321de853b6bfe9c",

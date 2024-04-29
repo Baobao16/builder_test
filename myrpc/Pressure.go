@@ -1,4 +1,4 @@
-package main
+package new
 
 import (
 	"context"
@@ -105,7 +105,8 @@ func getUserHandler(w http.ResponseWriter, r *http.Request) {
 		// RevertList: []int{1},
 	}
 
-	txs, err := cases.RunValidBundleCases(arg, "")
+	txs, err := cases.RunValidBundleCases(arg)
+
 	txBytes := make([]hexutil.Bytes, 0)
 	for _, tx := range txs {
 		txByte, _ := tx.MarshalBinary()

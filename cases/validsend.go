@@ -2,8 +2,10 @@ package cases
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
@@ -16,15 +18,42 @@ import (
 // 	return nil
 // }
 
-func ValidSend_ContractTx_1(arg *BidCaseArg) error {
+func ValidSend_ContractTx_1(arg *BidCaseArg) (types.Transaction, error) {
 
 	txs, _ := GenerateBNBTxs(arg, arg.SendAmount, arg.Data, 1)
 
+	txBytes := make([]hexutil.Bytes, 0)
+	for _, tx := range txs {
+		log.Println(tx.Nonce())
+		txByte, err := tx.MarshalBinary()
+		fmt.Printf("txhash %v\n", tx.Hash().Hex())
+		if err != nil {
+			log.Println("tx.MarshalBinary", "err", err)
+		}
+		txBytes = append(txBytes, txByte)
+	}
+
 	err := arg.Client.SendTransaction(arg.Ctx, txs[0])
 	if err != nil {
-		fmt.Println("failed to send bundle", "err", err)
+		fmt.Println("failed to send single Transaction", "err", err)
 	}
-	return nil
+	return *txs[0], nil
+}
+func ValidSend_ContractTx(arg *BidCaseArg) (types.Transaction, error) {
+
+	txs, _ := GenerateBNBTxs(arg, arg.SendAmount, arg.Data, 1)
+
+	txBytes := make([]hexutil.Bytes, 0)
+	for _, tx := range txs {
+		log.Println(tx.Nonce())
+		txByte, err := tx.MarshalBinary()
+		fmt.Printf("txhash %v\n", tx.Hash().Hex())
+		if err != nil {
+			log.Println("tx.MarshalBinary", "err", err)
+		}
+		txBytes = append(txBytes, txByte)
+	}
+	return *txs[0], nil
 }
 
 func SendRaw(arg *BidCaseArg) error {
@@ -36,7 +65,7 @@ func SendRaw(arg *BidCaseArg) error {
 
 func RunValidSendCases(arg *BidCaseArg) {
 	print("run case ")
-	err := ValidSend_ContractTx_1(arg)
+	_, err := ValidSend_ContractTx_1(arg)
 	if err != nil {
 		print(" failed: ", err.Error())
 	} else {
