@@ -9,7 +9,6 @@ import (
 
 // func ValidSend_NilPayBidTx_1(arg *BidCaseArg) error {
 // 	txs := GenerateBNBTxs(arg, TransferAmountPerTx, nil, 1)
-
 // 	err := arg.Client.SendTransaction(arg.Ctx, txs[0])
 // 	if err != nil {
 // 		fmt.Println("failed to send bundle", "err", err)

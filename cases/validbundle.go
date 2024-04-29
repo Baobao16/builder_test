@@ -68,7 +68,7 @@ func ValidBundle_NilPayBidTx_2(arg *BidCaseArg) (types.Transactions, error) {
 
 }
 
-func RunValidBundleCases(arg *BidCaseArg, msg string) (types.Transactions, error) {
+func RunValidBundleCases(arg *BidCaseArg) (types.Transactions, error) {
 	log.Println("run case \n")
 	txs, err := ValidBundle_NilPayBidTx_2(arg)
 	if err != nil {

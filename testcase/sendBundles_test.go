@@ -1,6 +1,7 @@
 package newtestcases
 
 import (
+	"fmt"
 	"log"
 	"math/big"
 	"math/rand"
@@ -175,7 +176,6 @@ func Test_p1_sendbundle_revert(t *testing.T) {
 		arg.TxCount = 3
 		arg.RevertList = []int{}
 		arg.Data = TotallysplWBNB_code
-		arg.Contract = WBNB
 		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, arg)
 		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
 		if err != nil {
@@ -322,9 +322,13 @@ func Test_p1_sendbundle_maxBN(t *testing.T) {
 	// maxBlockNumber最多设为当前区块号+100
 	arg, tx_type := setup()
 	t.Run("sendvalidbundle_arg_maxBN_large", func(t *testing.T) {
-		arg.MaxBN = uint64(getLatestBlockNumber() + 101)
+		blockNum, err := arg.Client.BlockNumber(arg.Ctx)
+		if err != nil {
+			fmt.Println("BlockNumber", "err", err)
+		}
+		arg.MaxBN = blockNum + 101
 		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, arg)
-		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
+		err = arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
 		if err != nil {
 			log.Println(" failed: ", err.Error())
 			assert.True(t, strings.Contains(err.Error(), maxBlockNumberL))
@@ -376,6 +380,27 @@ func Test_p1_sendbundle_maxTS(t *testing.T) {
 		// 	checkBundleTx(t, *tx, true, Txsucceed, tx_type)
 		// }
 	})
+	//区块号合法
+	t.Run("sendvalidbundle_arg_maxTS_maxBN", func(t *testing.T) {
+		currentTime := time.Now().Unix()
+		// 指定bundle 最大为当前区块的下一个块，bundle时间为两个块后
+		// expected 不会上链
+		convertedTime := uint64(currentTime + 10)
+		blockNum, err := arg.Client.BlockNumber(arg.Ctx)
+		if err != nil {
+			fmt.Println("BlockNumber", "err", err)
+		}
+		arg.MaxBN = blockNum + 2
+		arg.MinTS = &convertedTime
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, arg)
+		err = arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
+		assert.Nil(t, err)
+		BlockheightIncreased(t)
+		for _, tx := range txs {
+			// 依次检查bundle中的交易是否成功上链
+			checkBundleTx(t, *tx, false, Txfailed, tx_type)
+		}
+	})
 }
 
 func Test_p2_sendbundle_maxTS(t *testing.T) {
@@ -419,7 +444,6 @@ func Test_p2_sendbundle_maxTS(t *testing.T) {
 func Test_p1_sendbundle_minTS(t *testing.T) {
 	// maxTimestamp最多设为当前区块号+5minutes
 	arg, tx_type := setup()
-	var currentTime int64 = time.Now().Unix()
 	t.Run("sendvalidbundle_arg_minT", func(t *testing.T) {
 		var currentTime int64 = time.Now().Unix()
 		convertedTime := uint64(currentTime + 2)
@@ -436,7 +460,7 @@ func Test_p1_sendbundle_minTS(t *testing.T) {
 		}
 	})
 	t.Run("sendvalidbundle_arg_min_drop", func(t *testing.T) {
-		currentTime = time.Now().Unix()
+		currentTime := time.Now().Unix()
 		convertedTime := uint64(currentTime - 3)
 		convertedTime1 := uint64(currentTime + 1)
 		arg.MinTS = &convertedTime
@@ -522,7 +546,6 @@ func Test_p2_sendbundle_mmTS(t *testing.T) {
 	arg, tx_type := setup()
 	var currentTime int64 = time.Now().Unix()
 	msg := TimestampMM
-
 	convertedTime := uint64(currentTime + int64(rand.Intn(300)))
 
 	//maxTimestamp 等于 minTimestamp

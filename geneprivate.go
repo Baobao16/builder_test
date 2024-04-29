@@ -12,7 +12,7 @@ func generatePrivateKey() (*ecdsa.PrivateKey, error) {
 	return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 }
 
-func main() {
+func new() {
 	numKeys := 5 // 生成私钥的数量
 
 	for i := 0; i < numKeys; i++ {

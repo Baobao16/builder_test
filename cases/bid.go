@@ -139,8 +139,6 @@ func GenerateBNBTxs(arg *BidCaseArg, amountPerTx *big.Int, data []byte, txcount 
 		)
 		if revertTxs[i] == "RevertList" {
 			// RevertList 指定的 Revert交易
-			// arg.Data = TotallysplWBNB_code
-			// arg.Contract = WBNB
 			bundle, err = rootAccount.TransferBNB(rootAccount.Nonce, WBNB, TotallysplWBNB_code, arg.ChainID, amountPerTx, arg.GasPrice, arg.GasLimit)
 			revertTxHashes = append(revertTxHashes, bundle.Hash())
 			// fmt.Printf("List revert txhash %v\n", bundle.Hash().Hex())
@@ -151,7 +149,6 @@ func GenerateBNBTxs(arg *BidCaseArg, amountPerTx *big.Int, data []byte, txcount 
 
 		} else {
 			// arg.GasLimit = big.NewInt(int64(int(BNBGasUsed) + rand.Intn(3300)))
-			// println(arg.GasLimit)
 			bundle, err = rootAccount.TransferBNB(rootAccount.Nonce, arg.Contract, data, arg.ChainID, amountPerTx, arg.GasPrice, arg.GasLimit)
 			// fmt.Printf(" validtx txhash %v\n", bundle.Hash().Hex())
 

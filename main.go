@@ -68,7 +68,7 @@ var (
 	validator = flag.String("validator", "0xF474Cf03ccEfF28aBc65C9cbaE594F725c80e12d", "validator address")
 )
 
-func new() {
+func main() {
 
 	ctx := context.Background()
 
@@ -117,11 +117,11 @@ func new() {
 		BuilderClient: client3,
 		TxCount:       3,
 		// Contract:      common.HexToAddress("0x7b09bb26c9fef574ea980a33fc71c184405a4023"),
-		Contract:   common.HexToAddress("0x199e3Bfb54f4aAa9D67d1BB56429c5ef9D1A2A91"),
-		Data:       common.Hex2Bytes("a6f9dae10000000000000000000000007b09bb26c9fef574ea980a33fc71c184405a4023"),
-		GasPrice:   big.NewInt(2e9),
-		GasLimit:   big.NewInt(22000),
-		SendAmount: big.NewInt(1e18),
+		Contract:   cases.WBNB,
+		Data:       cases.TransferWBNB_code,
+		GasPrice:   big.NewInt(500),
+		GasLimit:   big.NewInt(50000),
+		SendAmount: big.NewInt(50),
 		// RevertList: []int{1},
 	}
 
@@ -135,7 +135,7 @@ func new() {
 	// cases.RunValidBundleCases(arg)
 
 	//单发一个转账交易
-	cases.RunValidSendCases(arg)
+	// cases.RunValidSendCases(arg)
 
 	//单发一个裸交易
 	cases.SendRaw(arg)
@@ -154,14 +154,13 @@ func new() {
 	// 	Validators:    []common.Address{common.HexToAddress(*validator)},
 	// 	BidClient:     client2,
 	// 	BuilderClient: client3,
-	// 	TxCount:       10,
-	// 	//Contract:      common.HexToAddress("0x7b09bb26c9fef574ea980a33fc71c184405a4023"),
-	// 	Contract: common.HexToAddress("0x199e3Bfb54f4aAa9D67d1BB56429c5ef9D1A2A91"),
-	// 	//Data:       common.Hex2Bytes("a6f9dae10000000000000000000000007b09bb26c9fef574ea980a33fc71c184405a4023"),
-	// 	GasPrice:   big.NewInt(10e9),
-	// 	GasLimit:   big.NewInt(21000),
-	// 	SendAmount: big.NewInt(1e18),
-	// 	RevertList: []int{0},
+	// 	TxCount:       5,
+	// 	Contract:      cases.WBNB,
+	// 	Data:          cases.TransferWBNB_code,
+	// 	GasPrice:      big.NewInt(500),
+	// 	GasLimit:      big.NewInt(50000),
+	// 	SendAmount:    big.NewInt(50),
+	// 	RevertList:    []int{0},
 	// }
 
 	// // //发两个bid
@@ -170,7 +169,7 @@ func new() {
 	// 	wg.Add(1)
 	// 	go func(i int) {
 	// 		time.Sleep(time.Duration(i) * time.Second)
-	// 		cases.RunValidBundleCases(t, args[i], "")
+	// 		cases.RunValidBundleCases(args[i])
 	// 		wg.Done()
 	// 	}(i)
 	// }
