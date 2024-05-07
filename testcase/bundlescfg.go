@@ -8,8 +8,8 @@ import (
 )
 
 var (
-	url   = "http://10.2.66.75:28545"
-	url_1 = "http://10.2.66.75:18545"
+	url   = "http://10.1.8.114:28545"
+	url_1 = "http://10.1.8.114:18545"
 
 	ctx       = context.Background()
 	rootPk    = *rootPrivateKey

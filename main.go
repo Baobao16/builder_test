@@ -138,7 +138,7 @@ func main() {
 	cases.RunValidSendCases(arg)
 
 	//单发一个裸交易
-	// cases.SendRaw(arg)
+	cases.SendRaw(arg)
 
 	//发两个bid
 

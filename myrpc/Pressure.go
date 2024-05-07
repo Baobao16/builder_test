@@ -127,7 +127,7 @@ func getUserHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonData)
 }
 
-func main() {
+func new() {
 	// 定义路由，指定处理函数
 	http.HandleFunc("/user", getUserHandler)
 

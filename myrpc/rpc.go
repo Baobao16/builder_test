@@ -29,7 +29,7 @@ type Response struct {
 	} `json:"result"`
 }
 
-func new() {
+func main() {
 
 	url := "http://10.2.66.75:28545"
 
