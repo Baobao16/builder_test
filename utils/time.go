@@ -1,4 +1,4 @@
-package newtestcases
+package utils
 
 import (
 	"fmt"

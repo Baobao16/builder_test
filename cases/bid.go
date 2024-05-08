@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"log"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -92,25 +93,26 @@ func PriKeyToAddress(privateKey string) (*ecdsa.PrivateKey, common.Address) {
 }
 
 type BidCaseArg struct {
-	Ctx           context.Context
-	Client        *ethclient.Client
-	BidClient     *ethclient.Client
-	BuilderClient *ethclient.Client
-	ChainID       *big.Int
-	RootPk, BobPk string
-	Contract      common.Address
-	Builder       *Account
-	Validators    []common.Address
-	TxCount       int
-	Data          []byte
-	GasLimit      *big.Int
-	GasPrice      *big.Int
-	SendAmount    *big.Int
-	RevertList    []int
-	RevertListAdd []int
-	MaxBN         uint64
-	MinTS         *uint64
-	MaxTS         *uint64
+	Ctx              context.Context
+	Client           *ethclient.Client
+	BidClient        *ethclient.Client
+	BuilderClient    *ethclient.Client
+	ChainID          *big.Int
+	RootPk, BobPk    string
+	Contract         common.Address
+	Builder          *Account
+	Validators       []common.Address
+	TxCount          int
+	Data             []byte
+	GasLimit         *big.Int
+	GasPrice         *big.Int
+	SendAmount       *big.Int
+	RevertList       []int
+	RevertListAdd    []int
+	RevertListnormal []int
+	MaxBN            uint64
+	MinTS            *uint64
+	MaxTS            *uint64
 }
 
 func GenerateBNBTxs(arg *BidCaseArg, amountPerTx *big.Int, data []byte, txcount int) (types.Transactions, []common.Hash) {
@@ -124,6 +126,9 @@ func GenerateBNBTxs(arg *BidCaseArg, amountPerTx *big.Int, data []byte, txcount 
 	}
 	revertTxs := make(map[int]string)
 
+	for _, v := range arg.RevertListnormal {
+		revertTxs[v] = "RevertListnormal"
+	}
 	for _, v := range arg.RevertList {
 		revertTxs[v] = "RevertList"
 	}
@@ -137,13 +142,20 @@ func GenerateBNBTxs(arg *BidCaseArg, amountPerTx *big.Int, data []byte, txcount 
 			bundle *types.Transaction
 			err    error
 		)
-		if revertTxs[i] == "RevertList" {
-			// RevertList 指定的 Revert交易
-			bundle, err = rootAccount.TransferBNB(rootAccount.Nonce, WBNB, TotallysplWBNB_code, arg.ChainID, amountPerTx, arg.GasPrice, arg.GasLimit)
+		if revertTxs[i] == "RevertListnormal" {
+			// 把正常交易加入revertlist中
+			bundle, err = rootAccount.TransferBNB(rootAccount.Nonce, arg.Contract, data, arg.ChainID, amountPerTx, arg.GasPrice, arg.GasLimit)
 			revertTxHashes = append(revertTxHashes, bundle.Hash())
 			// fmt.Printf("List revert txhash %v\n", bundle.Hash().Hex())
 
+		} else if revertTxs[i] == "RevertList" {
+			// RevertList 中的交易设置为会revert
+			bundle, err = rootAccount.TransferBNB(rootAccount.Nonce, WBNB, TotallysplWBNB_code, arg.ChainID, amountPerTx, arg.GasPrice, arg.GasLimit)
+			// fmt.Printf("noList revert txhash %v\n", bundle.Hash().Hex())
+			revertTxHashes = append(revertTxHashes, bundle.Hash())
+
 		} else if revertTxs[i] == "RevertListAdd" {
+			// 发送会revert的交易，但不加入revertList
 			bundle, err = rootAccount.TransferBNB(rootAccount.Nonce, WBNB, TotallysplWBNB_code, arg.ChainID, amountPerTx, arg.GasPrice, arg.GasLimit)
 			// fmt.Printf("noList revert txhash %v\n", bundle.Hash().Hex())
 
@@ -156,6 +168,7 @@ func GenerateBNBTxs(arg *BidCaseArg, amountPerTx *big.Int, data []byte, txcount 
 		if err != nil {
 			fmt.Println("fail to sign tx TransferBNB", "err", err)
 		}
+		log.Printf("Txhash %v in bundle [gasPrice: %v ,gasLimit: %v ,SendAmount :%v]\n", bundle.Hash().Hex(), arg.GasPrice, arg.GasLimit, amountPerTx)
 		txs = append(txs, bundle)
 		rootAccount.Nonce = rootAccount.Nonce + 1
 	}

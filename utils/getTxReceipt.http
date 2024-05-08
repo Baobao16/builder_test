@@ -1,0 +1,38 @@
+curl --request POST \
+     --url http://10.1.8.114:28545 \
+     --header 'accept: application/json' \
+     --header 'content-type: application/json' \
+     --data '
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "eth_getTransactionReceipt",
+  "params": [
+    "0x584492785b9b36b6d2edb99d7be4e7920e49fae6eebd0dddf1ac121d798383b2"
+  ]
+}
+'
+
+# func Test_con(t *testing.T) {
+# 	defer utils.ResetContract(t, conf.Mylock, conf.Lock_reset, conf.Tx_type)
+# 	var txs types.Transactions
+# 	t.Log("[Step-2] User 1 bundle [tx1, tx2], tx2 not allowed to revert.\n")
+# 	usr1_arg := utils.User_tx(conf.RootPk, conf.Mylock, conf.Mylock_fakelock_1ong_code)
+# 	txs_1, revertTxHashes := cases.GenerateBNBTxs(&usr1_arg, usr1_arg.SendAmount, usr1_arg.Data, 1)
+# 	bundleArgs1 := utils.AddBundle(txs, txs_1, revertTxHashes)
+
+# 	t.Log("[Step-3] User 2 bundle [tx1, tx3], tx3 not allowed to revert.\n")
+# 	usr2_arg := utils.User_tx(conf.RootPk2, conf.Mylock, conf.Mylock_fakelock_11_code)
+# 	txs_2, revertTxHashes := cases.GenerateBNBTxs(&usr2_arg, usr2_arg.SendAmount, usr2_arg.Data, 1)
+# 	bundleArgs2 := utils.AddBundle(txs, txs_2, revertTxHashes)
+
+# 	args[0] = &usr1_arg
+# 	args[1] = &usr2_arg
+# 	bundleArgs_lsit[0] = bundleArgs1
+# 	bundleArgs_lsit[1] = bundleArgs2
+
+# 	t.Log("[Step-4] User 1 and User 2 send bundles .\n")
+# 	cbn := utils.ConcurSendBundles(t, args, bundleArgs_lsit)
+# 	println(cbn)
+# 	utils.BlockheightIncreased(t)
+# }
