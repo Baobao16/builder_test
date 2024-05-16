@@ -8,11 +8,12 @@ curl --request POST \
   "jsonrpc": "2.0",
   "method": "eth_getTransactionReceipt",
   "params": [
-    "0x584492785b9b36b6d2edb99d7be4e7920e49fae6eebd0dddf1ac121d798383b2"
+    "0xc805349bae9b0405294537cb05e5beedff3e33d46e1af8a9fc8c0619ec38af8c"
   ]
 }
 '
 
+# "0x2d7b6d" "0x2d7b85"
 # func Test_con(t *testing.T) {
 # 	defer utils.ResetContract(t, conf.Mylock, conf.Lock_reset, conf.Tx_type)
 # 	var txs types.Transactions

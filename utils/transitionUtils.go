@@ -41,7 +41,7 @@ func (c *Contract) CallFunction(method string, args ...interface{}) ([]byte, err
 	return input, nil
 }
 
-func User_tx(root_name string, contract common.Address, data []byte) cases.BidCaseArg {
+func User_tx(root_name string, contract common.Address, data []byte, gasLimit *big.Int) cases.BidCaseArg {
 	ctx := context.Background()
 
 	rootPk := root_name
@@ -85,7 +85,7 @@ func User_tx(root_name string, contract common.Address, data []byte) cases.BidCa
 		Contract:      contract,
 		Data:          data,
 		GasPrice:      big.NewInt(conf.Min_gasPrice),
-		GasLimit:      big.NewInt(conf.Max_gasLimit),
+		GasLimit:      gasLimit,
 		SendAmount:    big.NewInt(0),
 	}
 	return *arg
@@ -143,9 +143,9 @@ func IsEmptyField(result Result_b) bool {
 
 func SendLockMempool(t *testing.T, usr string, contract common.Address, data []byte, revert bool) (types.Transactions, []common.Hash) {
 
-	usr_arg := User_tx(usr, contract, data)
-	usr_arg.GasLimit = big.NewInt(conf.Max_gasLimit)
-	usr_arg.GasPrice = big.NewInt(conf.Min_gasPrice)
+	usr_arg := User_tx(usr, contract, data, big.NewInt(2000000))
+	// usr_arg.GasLimit = big.NewInt(conf.Max_gasLimit)
+	// usr_arg.GasPrice = big.NewInt(conf.Min_gasPrice)
 	if revert {
 		log.Printf("Mempool transaction will in bundle RevertList . ")
 		usr_arg.RevertListnormal = []int{0} // 当前交易被记入RevertList
@@ -181,9 +181,11 @@ func ConcurSendBundles(t *testing.T, args []*cases.BidCaseArg, bundleArgs_lsit [
 		go func(i int) {
 			// time.Sleep(time.Duration(i) * time.Second)
 			err := args[i].BuilderClient.SendBundle(args[i].Ctx, bundleArgs_lsit[i])
+			// msg := "non-reverting tx in bundle failed"
 			if err != nil {
 				log.Println(" failed: ", err.Error())
-				assert.True(t, strings.Contains(err.Error(), conf.InvalidTx))
+				assert.True(t, strings.Contains(err.Error(), "non-reverting tx in bundle failed"))
+				// assert.True(t, strings.Contains(err.Error(), conf.InvalidTx))
 			}
 			wg.Done()
 		}(i)
@@ -237,7 +239,7 @@ func GeneEncodedData(con Contract, method string, args ...interface{}) []byte {
 func ResetContract(t *testing.T, contract common.Address, data []byte) {
 	// 执行测试后的清理工作:调用reset合约重置lock
 	t.Log("Root User reset Contract lock\n")
-	usr_arg := User_tx(conf.RootPk, contract, data) //"gasUsed":"0x5bb2"  23474
+	usr_arg := User_tx(conf.RootPk, contract, data, conf.High_gas) //"gasUsed":"0x5bb2"  23474
 	usr_arg.TxCount = 1
 	txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &usr_arg)
 	bn, _ := usr_arg.Client.BlockNumber(usr_arg.Ctx)

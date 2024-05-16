@@ -42,12 +42,12 @@ func Test_p0_value_perservation(t *testing.T) {
 			// defer utils.ResetContract(t, conf.Mylock, reset_data)
 
 			t.Log("[Step-1] User 1 bundle [tx1], tx1 not allowed to revert.\n")
-			usr1_arg := utils.User_tx(conf.RootPk2, conf.ValueCp, tc.a)
+			usr1_arg := utils.User_tx(conf.RootPk2, conf.ValueCp, tc.a, conf.High_gas)
 			txs_1, revertTxHashes := cases.GenerateBNBTxs(&usr1_arg, bribe_fee_1, usr1_arg.Data, 1)
 			bundleArgs1 := utils.AddBundle(txs, txs_1, revertTxHashes, 0)
 
 			t.Log("[Step-2] User 2 bundle [tx2], tx2 not allowed to revert.\n")
-			usr2_arg := utils.User_tx(conf.RootPk3, conf.ValueCp, tc.b)
+			usr2_arg := utils.User_tx(conf.RootPk3, conf.ValueCp, tc.b, conf.High_gas)
 			blockNum, _ := usr2_arg.Client.BlockNumber(usr2_arg.Ctx)
 			MaxBN := blockNum + 1
 			txs_2, revertTxHashes := cases.GenerateBNBTxs(&usr2_arg, bribe_fee_2, usr2_arg.Data, 1)
@@ -92,19 +92,17 @@ func Test_bribe(t *testing.T) {
 		// tx4 gaslimit 30w, gasprice 1Gwei , 贿赂 SendAmount = 0.00015 * 1Gwei【贿赂成功】
 		t.Log("[Step-2] User 1 bundle [tx1, tx2], tx2 not allowed to revert.\n")
 
-		usr1_arg := utils.User_tx(conf.RootPk2, conf.Mylock, unlock_more_data)
-		usr1_arg.GasLimit = big.NewInt(3e6)
+		usr1_arg := utils.User_tx(conf.RootPk2, conf.Mylock, unlock_more_data, conf.High_gas)
 
 		txs_1, revertTxHashes := cases.GenerateBNBTxs(&usr1_arg, usr1_arg.SendAmount, usr1_arg.Data, 1)
 		bundleArgs1 := utils.AddBundle(txs, txs_1, revertTxHashes, 0)
 
 		t.Log("[Step-3] User 2 bundle [tx1, tx3], tx3 not allowed to revert.\n")
-		usr2_arg := utils.User_tx(conf.RootPk3, conf.Mylock, unlock_str_data)
-		usr2_arg.GasLimit = big.NewInt(2e6)
+		usr2_arg := utils.User_tx(conf.RootPk3, conf.Mylock, unlock_str_data, conf.Med_gas)
 		txs_2, _ := cases.GenerateBNBTxs(&usr2_arg, usr2_arg.SendAmount, usr2_arg.Data, 1)
 
 		//  Bribe Transaction 【private tx】
-		arg := utils.User_tx(conf.RootPk4, conf.SpecialOp, conf.SpecialOp_Bb)
+		arg := utils.User_tx(conf.RootPk4, conf.SpecialOp, conf.SpecialOp_Bb, conf.High_gas)
 		bribe_fee := big.NewInt(1500000 * 1e9)
 		log.Printf("bribe price is %v", bribe_fee)
 		tmp := arg.Contract
@@ -152,19 +150,17 @@ func Test_bribe(t *testing.T) {
 		// tx4 gaslimit 30w, gasprice 1Gwei , 贿赂 SendAmount = 0.00005 * 1Gwei【贿赂失败】
 		t.Log("[Step-2] User 1 bundle [tx1, tx2], tx2 not allowed to revert.\n")
 
-		usr1_arg := utils.User_tx(conf.RootPk2, conf.Mylock, unlock_more_data)
-		usr1_arg.GasLimit = big.NewInt(3e6)
+		usr1_arg := utils.User_tx(conf.RootPk2, conf.Mylock, unlock_more_data, conf.High_gas)
 
 		txs_1, revertTxHashes := cases.GenerateBNBTxs(&usr1_arg, usr1_arg.SendAmount, usr1_arg.Data, 1)
 		bundleArgs1 := utils.AddBundle(txs, txs_1, revertTxHashes, 0)
 
 		t.Log("[Step-3] User 2 bundle [tx1, tx3], tx3 not allowed to revert.\n")
-		usr2_arg := utils.User_tx(conf.RootPk3, conf.Mylock, unlock_str_data)
-		usr2_arg.GasLimit = big.NewInt(2e6)
+		usr2_arg := utils.User_tx(conf.RootPk3, conf.Mylock, unlock_str_data, conf.Med_gas)
 		txs_2, _ := cases.GenerateBNBTxs(&usr2_arg, usr2_arg.SendAmount, usr2_arg.Data, 1)
 
 		//  Bribe Transaction 【private tx】
-		arg := utils.User_tx(conf.RootPk4, conf.SpecialOp, conf.SpecialOp_Bb)
+		arg := utils.User_tx(conf.RootPk4, conf.SpecialOp, conf.SpecialOp_Bb, conf.High_gas)
 		bribe_fee := big.NewInt(50000 * 1e9)
 		log.Printf("bribe price is %v", bribe_fee)
 		tmp := arg.Contract
@@ -236,7 +232,7 @@ func Test_p0_SpecialOp(t *testing.T) {
 		t.Log("send bundles testTimestamp parent \n")
 		blkTims := utils.GetLatestBlkMsg(t, conf.Spe_path, "testTimestampEq", 5)
 
-		arg := utils.User_tx(conf.RootPk, conf.SpecialOp, blkTims)
+		arg := utils.User_tx(conf.RootPk, conf.SpecialOp, blkTims, conf.High_gas)
 		arg.TxCount = 1
 		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
 		cbn := utils.SendBundlesMined(t, arg, bundleArgs)
@@ -250,7 +246,7 @@ func Test_p0_SpecialOp(t *testing.T) {
 	t.Run("blkHash", func(t *testing.T) {
 		t.Log("send bundles blkHash \n")
 		blkHash := utils.GetLatestBlkMsg(t, conf.Spe_path, "testBlockHash", 0)
-		arg := utils.User_tx(conf.RootPk2, conf.SpecialOp, blkHash)
+		arg := utils.User_tx(conf.RootPk2, conf.SpecialOp, blkHash, conf.High_gas)
 		arg.TxCount = 1
 		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
 		cbn := utils.SendBundlesMined(t, arg, bundleArgs)

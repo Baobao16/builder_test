@@ -163,7 +163,6 @@ func GetTransactionReceipt(tx types.Transaction) Response {
 	err := json.Unmarshal([]byte(body), &response)
 	if err != nil {
 		fmt.Println("decode JSON failed:", err)
-		// return "decode JSON failed"
 	}
 	return response
 }
@@ -214,7 +213,7 @@ func CheckBundleTx(t *testing.T, tx types.Transaction, valid bool, status string
 
 	if valid {
 		// 预期会上链的交易
-		log.Printf("Type: %v Transaction executed %v transactionIndex is: 【 %v 】", response.Result.Status, response.Result.TransactionIndex)
+		log.Printf("Transaction executed %v transactionIndex is: 【 %v 】", response.Result.Status, response.Result.TransactionIndex)
 		if status == conf.Txsucceed {
 			// 打印gasUsed
 			log.Printf("%v gasUsed %v \n", tx.Hash().Hex(), response.Result.GasUsed)
