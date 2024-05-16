@@ -107,9 +107,9 @@ type BidCaseArg struct {
 	GasLimit         *big.Int
 	GasPrice         *big.Int
 	SendAmount       *big.Int
-	RevertList       []int
-	RevertListAdd    []int
-	RevertListnormal []int
+	RevertList       []int //会revert的交易，加入revertList
+	RevertListAdd    []int //会revert的交易，但不加入revertList
+	RevertListnormal []int //把正常交易加入revertList
 	MaxBN            uint64
 	MinTS            *uint64
 	MaxTS            *uint64
