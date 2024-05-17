@@ -389,7 +389,7 @@ func Test_p1_sendBundle_maxTS(t *testing.T) {
 		currentTime := time.Now().Unix()
 		// 指定bundle 最大为当前区块的下一个块，bundle时间为两个块后
 		// expected 不会上链
-		convertedTime := uint64(currentTime + 10)
+		convertedTime := uint64(currentTime + 11)
 		blockNum, err := arg.Client.BlockNumber(arg.Ctx)
 		if err != nil {
 			fmt.Println("BlockNumber", "err", err)
@@ -483,8 +483,8 @@ func Test_p2_sendBundle_minTS(t *testing.T) {
 	currentTime := time.Now().Unix()
 
 	t.Run("sendValidBundle_arg_no_drop", func(t *testing.T) {
-		convertedTime := uint64(currentTime + 7)
-		convertedTime1 := uint64(currentTime + 8)
+		convertedTime := uint64(currentTime + 9)
+		convertedTime1 := uint64(currentTime + 10)
 		arg.MinTS = &convertedTime
 		arg.MaxTS = &convertedTime1
 		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
@@ -499,7 +499,7 @@ func Test_p2_sendBundle_minTS(t *testing.T) {
 		utils.BlockheightIncreased(t)
 		for _, tx := range txs {
 			// 依次检查bundle中的交易是否成功上链
-			blkN := utils.CheckBundleTx(t, *tx, true, conf.Txfailed)
+			blkN := utils.CheckBundleTx(t, *tx, true, conf.Txsucceed)
 			tx_blk = append(tx_blk, blkN)
 		}
 		utils.TxinSameBlk(tx_blk)
