@@ -1,14 +1,36 @@
+# curl -i http://httpbin.org/ipcurl --request POST
+#     --url http://10.2.66.75:28545
+#     --header 'accept: application/json'
+#     --header 'content-type: application/json'
+#     --data '
+#{
+#  "id": 1,
+#  "jsonrpc": "2.0",
+#  "method": "eth_getTransactionReceipt",
+#  "params": [
+#    "0x71b79e847e6a01dd43a7fce6bdfcdbd327583b4d6f3819f91c797ddca652ad34"
+#  ]
+#}
+#'
 POST http://10.1.8.114:28545
-Content-Type:application/json
+accept: application/json
+Content-Type: application/json
+
+
 {
   "id": 1,
   "jsonrpc": "2.0",
   "method": "eth_getTransactionReceipt",
   "params": [
-    "0xc805349bae9b0405294537cb05e5beedff3e33d46e1af8a9fc8c0619ec38af8c"
+    "0x71b79e847e6a01dd43a7fce6bdfcdbd327583b4d6f3819f91c797ddca652ad34"
   ]
 }
-'
+
+
+###
+
+
+
 
 # "0x2d7b6d" "0x2d7b85"
 # func Test_con(t *testing.T) {
