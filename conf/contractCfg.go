@@ -9,7 +9,6 @@ import (
 // WBNB：0xE5454b639B241c07Fc0d55b23690F9CeE18b7E4f
 // RouterV2: 0xE1f45ef433b2ADF7583917974543a2df2161Dd6c
 // Token: 0x429B2BEa55c0F2a30318d21D029EDc847977344F
-
 var (
 	Mylock    = common.HexToAddress("0xf9a06746c193e0a6ce343e8684794ad911e71072") // 0514new
 	WBNB      = common.HexToAddress("0xE5454b639B241c07Fc0d55b23690F9CeE18b7E4f")
@@ -26,9 +25,9 @@ var (
 	High_gas     = big.NewInt(3000000)
 	Med_gas      = big.NewInt(2000000)
 	Low_gas      = big.NewInt(1000000)
-	Lock_path    = "../abi/ugLock.json"
-	Spe_path     = "../abi/specialOp.json"
-	ValueCp_path = "../abi/ValueCp.json"
+	Lock_path    = "../../abi/ugLock.json"
+	Spe_path     = "../../abi/specialOp.json"
+	ValueCp_path = "../../abi/ValueCp.json"
 
 	SpecialOp_Bb = common.Hex2Bytes("1c6dc3c0")
 	SpecialOp_Cb = common.Hex2Bytes("e6f1f7510000000000000000000000007d83033efae53d3250cff2d9e39e4a63fded9712")

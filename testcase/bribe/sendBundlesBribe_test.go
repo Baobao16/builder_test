@@ -1,6 +1,7 @@
-package newtestcases
+package bribe
 
 import (
+	"github.com/xkwang/testcase"
 	"log"
 	"math/big"
 	"strconv"
@@ -15,11 +16,9 @@ import (
 )
 
 var ValueCpABI = utils.GeneABI(conf.ValueCp_path)
-
 var valuecpABI = utils.Contract{ABI: *ValueCpABI}
 
 // var SpeABI = utils.GeneABI(conf.Spe_path)
-
 var bet_t = utils.GeneEncodedData(valuecpABI, "bet", true)
 var bet_f = utils.GeneEncodedData(valuecpABI, "bet", false)
 
@@ -41,7 +40,7 @@ func Test_p0_value_preservation(t *testing.T) {
 	}
 	for index, tc := range testCases {
 		t.Run("backRun_value_preservation"+strconv.Itoa(index), func(t *testing.T) {
-			//defer utils.ResetContract(t, conf.Mylock, reset_data)
+			//defer utils.ResetContract(t, conf.Mylock, testcase.ResetData)
 
 			t.Logf("[Step-1] User 1 bundle [tx1], tx1 Contract bet_%v .\n", tc.aContract)
 			usr1Arg := utils.User_tx(conf.RootPk2, conf.ValueCp, tc.a, conf.High_gas)
@@ -57,12 +56,12 @@ func Test_p0_value_preservation(t *testing.T) {
 			MaxBN := blockNum + 1
 			bundleArgs2 := utils.AddBundle(txs, txs_2, revertTxHashes, MaxBN)
 
-			args[0] = &usr1Arg
-			args[1] = &usr2Arg
-			bundleArgs_lsit[0] = bundleArgs1
-			bundleArgs_lsit[1] = bundleArgs2
+			testcase.Args[0] = &usr1Arg
+			testcase.Args[1] = &usr2Arg
+			testcase.BundleArgs_lsit[0] = bundleArgs1
+			testcase.BundleArgs_lsit[1] = bundleArgs2
 			t.Log("[Step-3] User 1 and User 2 send bundles .\n")
-			utils.ConcurSendBundles(t, args, bundleArgs_lsit)
+			utils.ConcurSendBundles(t, testcase.Args, testcase.BundleArgs_lsit)
 
 			t.Log("[Step-4] Check tx Minted .\n")
 
@@ -94,24 +93,24 @@ func Test_p0_value_preservation(t *testing.T) {
 func Test_bribe(t *testing.T) {
 
 	t.Run("bribe_success", func(t *testing.T) {
-		defer utils.ResetContract(t, conf.Mylock, reset_data)
+		defer utils.ResetContract(t, conf.Mylock, testcase.ResetData)
 
 		t.Log("[Step-1] Root User Expose mempoool transaction tx1\n")
-		lock_data := utils.GeneEncodedData(lockABI, "lock", 1, true)
-		txs, _ := utils.SendLockMempool(t, conf.RootPk, conf.Mylock, lock_data, false)
+		lock_data := utils.GeneEncodedData(testcase.LockABI, "lock", 1, true)
+		txs, _ := utils.SendLockMempool(conf.RootPk, conf.Mylock, lock_data, false)
 		// tx1 gaslimit 30w, gasprice 1Gwei,
 		// tx2 gasLimit 30w, 高于 tx3  >10w,
 		// tx3 gasLimit 20w, gasPrice都是1Gwei,
 		// tx4 gaslimit 30w, gasprice 1Gwei , 贿赂 SendAmount = 0.00015 * 1Gwei【贿赂成功】
 		t.Log("[Step-2] User 1 bundle [tx1, tx2], tx2 not allowed to revert.\n")
 
-		usr1_arg := utils.User_tx(conf.RootPk2, conf.Mylock, unlock_more_data, conf.High_gas)
+		usr1_arg := utils.User_tx(conf.RootPk2, conf.Mylock, testcase.UnlockMoreData, conf.High_gas)
 
 		txs_1, revertTxHashes := cases.GenerateBNBTxs(&usr1_arg, usr1_arg.SendAmount, usr1_arg.Data, 1)
 		bundleArgs1 := utils.AddBundle(txs, txs_1, revertTxHashes, 0)
 
 		t.Log("[Step-3] User 2 bundle [tx1, tx3], tx3 not allowed to revert.\n")
-		usr2_arg := utils.User_tx(conf.RootPk3, conf.Mylock, unlock_str_data, conf.Med_gas)
+		usr2_arg := utils.User_tx(conf.RootPk3, conf.Mylock, testcase.UnlockStrData, conf.Med_gas)
 		txs_2, _ := cases.GenerateBNBTxs(&usr2_arg, usr2_arg.SendAmount, usr2_arg.Data, 1)
 
 		//  Bribe Transaction 【private tx】
@@ -126,50 +125,50 @@ func Test_bribe(t *testing.T) {
 		txs = append(txb, txs...)
 		bundleArgs2 := utils.AddBundle(txs, txs_2, revertTxHashes, 0)
 
-		args[0] = &usr1_arg
-		args[1] = &usr2_arg
-		bundleArgs_lsit[0] = bundleArgs1
-		bundleArgs_lsit[1] = bundleArgs2
+		testcase.Args[0] = &usr1_arg
+		testcase.Args[1] = &usr2_arg
+		testcase.BundleArgs_lsit[0] = bundleArgs1
+		testcase.BundleArgs_lsit[1] = bundleArgs2
 
 		t.Log("[Step-4] User 1 and User 2 send bundles .\n")
-		cbn := utils.ConcurSendBundles(t, args, bundleArgs_lsit)
+		cbn := utils.ConcurSendBundles(t, testcase.Args, testcase.BundleArgs_lsit)
 
-		usrList[0].Txs = txs
-		usrList[0].Mined = true
-		usrList[0].Rst = conf.Txsucceed
+		testcase.UsrList[0].Txs = txs
+		testcase.UsrList[0].Mined = true
+		testcase.UsrList[0].Rst = conf.Txsucceed
 
-		usrList[1].Txs = txs_1
-		usrList[1].Mined = false
-		usrList[1].Rst = conf.Txfailed
+		testcase.UsrList[1].Txs = txs_1
+		testcase.UsrList[1].Mined = false
+		testcase.UsrList[1].Rst = conf.Txfailed
 
-		usrList[2].Txs = txs_2
-		usrList[2].Mined = true
-		usrList[2].Rst = conf.Txsucceed
+		testcase.UsrList[2].Txs = txs_2
+		testcase.UsrList[2].Mined = true
+		testcase.UsrList[2].Rst = conf.Txsucceed
 
-		utils.Verifytx(t, cbn, usrList)
+		utils.Verifytx(t, cbn, testcase.UsrList)
 		// 交易顺序符合预期
 		// tx1,tx3
 
 	})
 	t.Run("bribe_failed", func(t *testing.T) {
-		defer utils.ResetContract(t, conf.Mylock, reset_data)
+		defer utils.ResetContract(t, conf.Mylock, testcase.ResetData)
 
 		t.Log("[Step-1] Root User Expose mempool transaction tx1\n")
-		lock_data := utils.GeneEncodedData(lockABI, "lock", 1, true)
-		txs, _ := utils.SendLockMempool(t, conf.RootPk, conf.Mylock, lock_data, false)
+		lock_data := utils.GeneEncodedData(testcase.LockABI, "lock", 1, true)
+		txs, _ := utils.SendLockMempool(conf.RootPk, conf.Mylock, lock_data, false)
 		// tx1 gaslimit 30w, gasprice 1Gwei,
 		// tx2 gasLimit 30w, 高于 tx3  >10w,
 		// tx3 gasLimit 20w, gasPrice都是1Gwei,
 		// tx4 gaslimit 30w, gasprice 1Gwei , 贿赂 SendAmount = 0.00005 * 1Gwei【贿赂失败】
 		t.Log("[Step-2] User 1 bundle [tx1, tx2], tx2 not allowed to revert.\n")
 
-		usr1_arg := utils.User_tx(conf.RootPk2, conf.Mylock, unlock_more_data, conf.High_gas)
+		usr1_arg := utils.User_tx(conf.RootPk2, conf.Mylock, testcase.UnlockMoreData, conf.High_gas)
 
 		txs_1, revertTxHashes := cases.GenerateBNBTxs(&usr1_arg, usr1_arg.SendAmount, usr1_arg.Data, 1)
 		bundleArgs1 := utils.AddBundle(txs, txs_1, revertTxHashes, 0)
 
 		t.Log("[Step-3] User 2 bundle [tx1, tx3], tx3 not allowed to revert.\n")
-		usr2_arg := utils.User_tx(conf.RootPk3, conf.Mylock, unlock_str_data, conf.Med_gas)
+		usr2_arg := utils.User_tx(conf.RootPk3, conf.Mylock, testcase.UnlockStrData, conf.Med_gas)
 		txs_2, _ := cases.GenerateBNBTxs(&usr2_arg, usr2_arg.SendAmount, usr2_arg.Data, 1)
 
 		//  Bribe Transaction 【private tx】
@@ -184,27 +183,27 @@ func Test_bribe(t *testing.T) {
 		txs0 := append(txb, txs...)
 		bundleArgs2 := utils.AddBundle(txs0, txs_2, revertTxHashes, 0)
 
-		args[0] = &usr1_arg
-		args[1] = &usr2_arg
-		bundleArgs_lsit[0] = bundleArgs1
-		bundleArgs_lsit[1] = bundleArgs2
+		testcase.Args[0] = &usr1_arg
+		testcase.Args[1] = &usr2_arg
+		testcase.BundleArgs_lsit[0] = bundleArgs1
+		testcase.BundleArgs_lsit[1] = bundleArgs2
 
 		t.Log("[Step-4] User 1 and User 2 send bundles .\n")
-		cbn := utils.ConcurSendBundles(t, args, bundleArgs_lsit)
+		cbn := utils.ConcurSendBundles(t, testcase.Args, testcase.BundleArgs_lsit)
 
-		usrList[0].Txs = txs
-		usrList[0].Mined = true
-		usrList[0].Rst = conf.Txsucceed
+		testcase.UsrList[0].Txs = txs
+		testcase.UsrList[0].Mined = true
+		testcase.UsrList[0].Rst = conf.Txsucceed
 
-		usrList[1].Txs = txs_1
-		usrList[1].Mined = true
-		usrList[1].Rst = conf.Txsucceed
+		testcase.UsrList[1].Txs = txs_1
+		testcase.UsrList[1].Mined = true
+		testcase.UsrList[1].Rst = conf.Txsucceed
 
-		usrList[2].Txs = txs_2
-		usrList[2].Mined = false
-		usrList[2].Rst = conf.Txfailed
+		testcase.UsrList[2].Txs = txs_2
+		testcase.UsrList[2].Mined = false
+		testcase.UsrList[2].Rst = conf.Txfailed
 
-		utils.Verifytx(t, cbn, usrList)
+		utils.Verifytx(t, cbn, testcase.UsrList)
 		// 交易顺序符合预期
 		// tx1,tx2
 
@@ -213,18 +212,18 @@ func Test_bribe(t *testing.T) {
 }
 
 func Test_p0_SpecialOp(t *testing.T) {
-	// 	t.Run("testCoinbase", func(t *testing.T) {
-	// 		t.Log("send bundles testCoinbase \n")
-	// 		arg := utils.User_tx(conf.RootPk, conf.SpecialOp, conf.SpecialOp_Cb)
-	// 		arg.TxCount = 1
-	// 		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
-	// 		cbn := utils.SendBundlesMined(t, arg, bundleArgs)
+	t.Run("testCoinbase", func(t *testing.T) {
+		t.Log("send bundles testCoinbase \n")
+		arg := utils.User_tx(conf.RootPk, conf.SpecialOp, conf.SpecialOp_Cb, conf.High_gas)
+		arg.TxCount = 1
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		cbn := utils.SendBundlesMined(t, arg, bundleArgs)
 
-	// 		utils.WaitMined(txs, cbn)
+		utils.WaitMined(txs, cbn)
 
-	// 		utils.CheckBundleTx(t, *txs[0], true, conf.Txsucceed)
+		utils.CheckBundleTx(t, *txs[0], true, conf.Txsucceed)
 
-	// 	})
+	})
 
 	// 	// 意义不大
 	// 	// t.Skip("testTimestamp", func(t *testing.T) {
@@ -232,7 +231,7 @@ func Test_p0_SpecialOp(t *testing.T) {
 	// 	// 	blkTims := utils.GetLatestBlkMsg(t,conf.Spe_path, "testTimestamp", 5)
 	// 	// 	arg := utils.User_tx(conf.RootPk2, conf.SpecialOp, blkTims)
 	// 	// 	arg.TxCount = 1
-	// 	// 	txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+	// 	// 	txs, bundletestcase.Args, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
 	// 	// 	cbn := utils.SendBundlesMined(t, arg, bundleArgs)
 
 	// 	// 	utils.WaitMined(txs, cbn)

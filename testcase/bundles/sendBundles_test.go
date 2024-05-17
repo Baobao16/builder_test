@@ -1,4 +1,4 @@
-package newtestcases
+package bundles
 
 import (
 	"fmt"
@@ -26,60 +26,9 @@ var timeLimit = 300
 sendbundle 接口测试
 */
 
-func setup() cases.BidCaseArg {
-	// tx_type := "Transfer" // 默认为转账交易
-	client, err := ethclient.Dial(conf.Url)
-	if err != nil {
-		log.Println("node ethclient.DialOptions", "err", err)
-	}
-
-	client2, err := ethclient.Dial(conf.Url_1)
-	if err != nil {
-		log.Println("client2 bidclient ethclient.DialOptions", "err", err)
-	}
-
-	client3, err := ethclient.Dial(conf.Url)
-	if err != nil {
-		log.Println("client3 bidclient ethclient.DialOptions", "err", err)
-	}
-
-	// query chainID
-	chainID, err := client.ChainID(conf.Ctx)
-	if err != nil {
-		log.Printf("err %v\n", err)
-	} else {
-		log.Printf("==========获取当前链chainID ========== %v", chainID)
-	}
-
-	arg := &cases.BidCaseArg{
-		Ctx:           conf.Ctx,
-		Client:        client,      //客户端
-		ChainID:       chainID,     //client.ChainID
-		RootPk:        conf.RootPk, //root Private Key
-		BobPk:         conf.BobPk,
-		Builder:       cases.NewAccount(conf.BuilderPk),
-		Validators:    []common.Address{common.HexToAddress(*conf.Validator)},
-		BidClient:     client2,
-		BuilderClient: client3,
-		TxCount:       5,
-		Contract:      conf.WBNB, // 调用合约的地址
-		Data:          conf.TransferWBNB_code,
-		GasPrice:      big.NewInt(conf.Min_gasPrice),
-		GasLimit:      big.NewInt(conf.Max_gasLimit),
-		SendAmount:    big.NewInt(500),
-		RevertList:    []int{},
-		RevertListAdd: []int{},
-		// 调用非转账合约 1）更新Data字段 2）SendAmount置为0
-		// 确保提供的 Nonce 值是发送账户的下一个有效值
-	}
-	// t.Log(arg.Builder.Address.Hex())
-
-	return *arg
-}
-
 // 正常sendBundle
 func Test_p0_sendBundle(t *testing.T) {
-	arg := setup()
+	arg := utils.Setup()
 	t.Run("sendValidBundle_tx", func(t *testing.T) {
 		// bundle 中均为合法转账交易
 		t.Log("Start sendBundle \n")
@@ -104,7 +53,7 @@ sendBundle包含 revert交易
 5.Bundle_no_revert   - in revertList
 */
 func Test_p0_sendBundle_revert(t *testing.T) {
-	arg := setup()
+	arg := utils.Setup()
 	t.Run("sendValidBundle_all_revert", func(t *testing.T) {
 		// revert 交易均在revertList中记录
 		t.Log("generate revert transaction \n")
@@ -144,7 +93,7 @@ func Test_p0_sendBundle_revert(t *testing.T) {
 }
 
 func Test_p1_sendBundle_revert(t *testing.T) {
-	arg := setup()
+	arg := utils.Setup()
 	arg.RevertList = []int{0, 1, 2}
 	msg := conf.InvalidTx
 	// 存在未记录在revertList中的 revert交易
@@ -209,7 +158,7 @@ func Test_p1_sendBundle_revert(t *testing.T) {
 sendBundle 参数 - TxCount
 */
 func Test_p2_sendBundle_txCount(t *testing.T) {
-	arg := setup()
+	arg := utils.Setup()
 	msg := ""
 	txCountLists := []int{0, 30, 3000, 99999}
 	for _, count := range txCountLists {
@@ -244,7 +193,7 @@ func Test_p2_sendBundle_txCount(t *testing.T) {
 sendBundle 参数 - maxBlockNumber
 */
 func Test_p1_sendBundle_maxBN(t *testing.T) {
-	arg := setup()
+	arg := utils.Setup()
 	// maxBlockNumber最多设为当前区块号+100
 	t.Run("maxBlockNumber_large", func(t *testing.T) {
 		blockNum, err := arg.Client.BlockNumber(arg.Ctx)
@@ -289,7 +238,7 @@ func Test_p1_sendBundle_maxBN(t *testing.T) {
 sendBundle 参数 - maxTimeStamp
 */
 func Test_p1_sendBundle_maxTS(t *testing.T) {
-	arg := setup()
+	arg := utils.Setup()
 	t.Run("maxTimestamp_equal_current+300", func(t *testing.T) {
 		currentTime := time.Now().Unix()
 		futureTime := currentTime + int64(rand.Intn(timeLimit))
@@ -330,7 +279,7 @@ func Test_p1_sendBundle_maxTS(t *testing.T) {
 }
 
 func Test_p2_sendBundle_maxTS(t *testing.T) {
-	arg := setup()
+	arg := utils.Setup()
 	var currentTime int64 = time.Now().Unix()
 	t.Run("maxTS_more_than_current+300", func(t *testing.T) {
 		msg := conf.TimestampTop
@@ -372,7 +321,7 @@ func Test_p2_sendBundle_maxTS(t *testing.T) {
 sendBundle 参数 - minTimeStamp
 */
 func Test_p1_sendBundle_minTS(t *testing.T) {
-	arg := setup()
+	arg := utils.Setup()
 	t.Run("sendValidBundle_arg_minT", func(t *testing.T) {
 		//minTimestamp为未来时间 未超过设置时间 5*60 限制MaxBN生效
 		var currentTime int64 = time.Now().Unix()
@@ -395,8 +344,9 @@ func Test_p1_sendBundle_minTS(t *testing.T) {
 	})
 	t.Run("minTimeStamp_less_than_currentTime", func(t *testing.T) {
 		currentTime := time.Now().Unix()
-		convertedTime := uint64(currentTime - 30)
+		convertedTime := uint64(currentTime - 20)
 		convertedTime1 := uint64(currentTime + 1)
+		arg.MaxBN = 0
 		arg.MinTS = &convertedTime
 		arg.MaxTS = &convertedTime1
 		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
@@ -410,7 +360,7 @@ func Test_p1_sendBundle_minTS(t *testing.T) {
 }
 
 func Test_p2_sendBundle_minTS(t *testing.T) {
-	arg := setup()
+	arg := utils.Setup()
 	currentTime := time.Now().Unix()
 
 	t.Run("sendValidBundle_arg_minTS_no_drop", func(t *testing.T) {
@@ -484,7 +434,7 @@ func Test_p2_sendBundle_minTS(t *testing.T) {
 sendBundle 参数 - maxTimeStamp&minTimeStamp
 */
 func Test_p2_sendBundle_mmTS(t *testing.T) {
-	arg := setup()
+	arg := utils.Setup()
 	var currentTime int64 = time.Now().Unix()
 	msg := conf.TimestampMM
 	convertedTime := uint64(currentTime + int64(rand.Intn(timeLimit)))
@@ -533,7 +483,7 @@ sendBundle 并发
 */
 // diff account
 func Test_p0_sendBundle_batch(t *testing.T) {
-	arg := setup()
+	arg := utils.Setup()
 	client, err := ethclient.Dial(conf.Url)
 	if err != nil {
 		log.Println("node ethclient.DialOptions", "err", err)
@@ -595,7 +545,7 @@ func Test_p0_sendBundle_batch(t *testing.T) {
 
 // same account
 func Test_p1_sendBundle_conflict(t *testing.T) {
-	arg := setup()
+	arg := utils.Setup()
 	t.Run("sendValidBundle_conflict", func(t *testing.T) {
 		args := make([]*cases.BidCaseArg, 2)
 		args[0] = &arg

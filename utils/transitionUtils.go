@@ -41,6 +41,57 @@ func (c *Contract) CallFunction(method string, args ...interface{}) ([]byte, err
 	return input, nil
 }
 
+func Setup() cases.BidCaseArg {
+	// tx_type := "Transfer" // 默认为转账交易
+	client, err := ethclient.Dial(conf.Url)
+	if err != nil {
+		log.Println("node ethclient.DialOptions", "err", err)
+	}
+
+	client2, err := ethclient.Dial(conf.Url_1)
+	if err != nil {
+		log.Println("client2 bidclient ethclient.DialOptions", "err", err)
+	}
+
+	client3, err := ethclient.Dial(conf.Url)
+	if err != nil {
+		log.Println("client3 bidclient ethclient.DialOptions", "err", err)
+	}
+
+	// query chainID
+	chainID, err := client.ChainID(conf.Ctx)
+	if err != nil {
+		log.Printf("err %v\n", err)
+	} else {
+		log.Printf("==========获取当前链chainID ========== %v", chainID)
+	}
+
+	arg := &cases.BidCaseArg{
+		Ctx:           conf.Ctx,
+		Client:        client,      //客户端
+		ChainID:       chainID,     //client.ChainID
+		RootPk:        conf.RootPk, //root Private Key
+		BobPk:         conf.BobPk,
+		Builder:       cases.NewAccount(conf.BuilderPk),
+		Validators:    []common.Address{common.HexToAddress(*conf.Validator)},
+		BidClient:     client2,
+		BuilderClient: client3,
+		TxCount:       5,
+		Contract:      conf.WBNB, // 调用合约的地址
+		Data:          conf.TransferWBNB_code,
+		GasPrice:      big.NewInt(conf.Min_gasPrice),
+		GasLimit:      big.NewInt(conf.Max_gasLimit),
+		SendAmount:    big.NewInt(500),
+		RevertList:    []int{},
+		RevertListAdd: []int{},
+		// 调用非转账合约 1）更新Data字段 2）SendAmount置为0
+		// 确保提供的 Nonce 值是发送账户的下一个有效值
+	}
+	// t.Log(arg.Builder.Address.Hex())
+
+	return *arg
+}
+
 func User_tx(root_name string, contract common.Address, data []byte, gasLimit *big.Int) cases.BidCaseArg {
 	ctx := context.Background()
 
@@ -139,7 +190,7 @@ func IsEmptyField(result Result_b) bool {
 	return false
 }
 
-func SendLockMempool(t *testing.T, usr string, contract common.Address, data []byte, revert bool) (types.Transactions, []common.Hash) {
+func SendLockMempool(usr string, contract common.Address, data []byte, revert bool) (types.Transactions, []common.Hash) {
 
 	usr_arg := User_tx(usr, contract, data, big.NewInt(2000000))
 	// usr_arg.GasLimit = big.NewInt(conf.Max_gasLimit)

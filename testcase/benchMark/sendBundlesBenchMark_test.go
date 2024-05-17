@@ -1,7 +1,8 @@
-package newtestcases
+package benchMark
 
 import (
 	"github.com/xkwang/cases"
+	"github.com/xkwang/utils"
 	"log"
 	"testing"
 )
@@ -9,7 +10,7 @@ import (
 // 压力测试函数
 // 持续发送bundles
 func BenchmarkSendBundles(b *testing.B) {
-	arg := setup()
+	arg := utils.Setup()
 	// 循环执行测试函数
 	for i := 0; i < b.N; i++ {
 		// 在每次迭代中调用接口
