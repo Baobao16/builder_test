@@ -4,14 +4,13 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
-	"log"
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rlp"
+	"log"
+	"math/big"
 )
 
 var (
@@ -27,6 +26,7 @@ type Account struct {
 	Address    common.Address
 	privateKey *ecdsa.PrivateKey
 	Nonce      uint64
+	//Nonce atomic.Int32
 }
 
 func (a *Account) TransferBNB(nonce uint64, toAddress common.Address, data []byte, chainID *big.Int, amount *big.Int, gasprice *big.Int, gaslimit *big.Int) (*types.Transaction, error) {
@@ -171,6 +171,7 @@ func GenerateBNBTxs(arg *BidCaseArg, amountPerTx *big.Int, data []byte, txcount 
 		log.Printf("Txhash %v in bundle [gasPrice: %v ,gasLimit: %v ,SendAmount :%v]\n", bundle.Hash().Hex(), arg.GasPrice, arg.GasLimit, amountPerTx)
 		txs = append(txs, bundle)
 		rootAccount.Nonce = rootAccount.Nonce + 1
+		//rootAccount.Nonce.Add(1)
 	}
 
 	return txs, revertTxHashes

@@ -1,0 +1,24 @@
+# curl --request POST
+#     --url http://10.1.8.114:28545
+#     --header 'accept: application/json'
+#     --header 'content-type: application/json'
+#     --data '
+#{
+#  "id": 1,
+#  "jsonrpc": "2.0",
+#  "method": "eth_blockNumber",
+#  "params": [
+#  ]
+#}
+#'
+POST http://10.1.8.114:28545
+accept: application/json
+Content-Type: application/json
+
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "eth_blockNumber",
+  "params": [
+  ]
+}

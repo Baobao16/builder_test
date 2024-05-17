@@ -20,6 +20,7 @@ import (
 )
 
 var tx_blk = make([]string, 0)
+var timeLimit = 300
 
 /*
 sendbundle 接口测试
@@ -94,7 +95,14 @@ func Test_p0_sendBundle(t *testing.T) {
 	})
 }
 
-// sendBundle包含 revert交易
+/*
+sendBundle包含 revert交易
+1.Bundle_all_revert  - in revertList
+2.Bundle_part_revert - in revertList
+3.Bundle_part_revert - not in revertList
+4.Bundle_all_revert  - not in revertList
+5.Bundle_no_revert   - in revertList
+*/
 func Test_p0_sendBundle_revert(t *testing.T) {
 	arg := setup()
 	t.Run("sendValidBundle_all_revert", func(t *testing.T) {
@@ -135,7 +143,6 @@ func Test_p0_sendBundle_revert(t *testing.T) {
 	})
 }
 
-// Todo:sendBundle包含 revert交易_异常情况
 func Test_p1_sendBundle_revert(t *testing.T) {
 	arg := setup()
 	arg.RevertList = []int{0, 1, 2}
@@ -177,7 +184,7 @@ func Test_p1_sendBundle_revert(t *testing.T) {
 			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
 		}
 	})
-	t.Run("sendValidBundle_ilegal_revert", func(t *testing.T) {
+	t.Run("sendValidBundle_illegal_revert", func(t *testing.T) {
 		t.Log("generate revert transaction \n")
 		// bundle中均为 revert交易 && RevertList为空
 		arg.TxCount = 3
@@ -198,7 +205,10 @@ func Test_p1_sendBundle_revert(t *testing.T) {
 	})
 }
 
-func Test_p2_sendBundle_arg_tx(t *testing.T) {
+/*
+sendBundle 参数 - TxCount
+*/
+func Test_p2_sendBundle_txCount(t *testing.T) {
 	arg := setup()
 	msg := ""
 	txCountLists := []int{0, 30, 3000, 99999}
@@ -230,7 +240,298 @@ func Test_p2_sendBundle_arg_tx(t *testing.T) {
 	}
 }
 
-// different accounts
+/*
+sendBundle 参数 - maxBlockNumber
+*/
+func Test_p1_sendBundle_maxBN(t *testing.T) {
+	arg := setup()
+	// maxBlockNumber最多设为当前区块号+100
+	t.Run("maxBlockNumber_large", func(t *testing.T) {
+		blockNum, err := arg.Client.BlockNumber(arg.Ctx)
+		if err != nil {
+			fmt.Println("BlockNumber", "err", err)
+		}
+		arg.MaxBN = blockNum + 101
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		err = arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
+		if err != nil {
+			log.Println(" failed: ", err.Error())
+			assert.True(t, strings.Contains(err.Error(), conf.MaxBlockNumberL))
+		}
+		utils.BlockheightIncreased(t)
+		for _, tx := range txs {
+			// 依次检查bundle中的交易是否成功上链
+			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+		}
+	})
+	// 过期的区块号
+	maxBNLists := []int{0, 10, 999}
+	for _, count := range maxBNLists {
+		t.Run("maxBlockNumber_less_than_currentBlk", func(t *testing.T) {
+			arg.MaxBN = uint64(count)
+			txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+			err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
+			if err != nil {
+				log.Println(" failed: ", err.Error())
+				assert.True(t, strings.Contains(err.Error(), conf.MaxBlockNumberC))
+			}
+			if count != 0 {
+				for _, tx := range txs {
+					utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+				}
+			}
+		})
+	}
+
+}
+
+/*
+sendBundle 参数 - maxTimeStamp
+*/
+func Test_p1_sendBundle_maxTS(t *testing.T) {
+	arg := setup()
+	t.Run("maxTimestamp_equal_current+300", func(t *testing.T) {
+		currentTime := time.Now().Unix()
+		futureTime := currentTime + int64(rand.Intn(timeLimit))
+		convertedTime := uint64(futureTime)
+		arg.MaxTS = &convertedTime
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
+		assert.Nil(t, err)
+		t.Log(txs)
+		// t.Log(tx_type)
+		// BlockheightIncreased(t)
+		// for _, tx := range txs {
+		// 	// 依次检查bundle中的交易是否成功上链
+		// 	// 根据 交易index 确定校验的 tx_type
+		// 	CheckBundleTx(t, *tx, true, conf.Txsucceed)
+		// }
+	})
+
+	t.Run("maxTimestamp_legal_maxBlockNumber_work", func(t *testing.T) {
+		currentTime := time.Now().Unix()
+		// 指定bundle 最大为当前区块的下一个块，bundle时间为两个块后
+		// expected 不会上链
+		convertedTime := uint64(currentTime + 11)
+		blockNum, err := arg.Client.BlockNumber(arg.Ctx)
+		if err != nil {
+			fmt.Println("BlockNumber", "err", err)
+		}
+		arg.MaxBN = blockNum + 1
+		arg.MinTS = &convertedTime
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		cbn := utils.SendBundlesMined(t, arg, bundleArgs)
+		utils.WaitMined(txs, cbn)
+		for _, tx := range txs {
+			// 依次检查bundle中的交易是否成功上链
+			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+		}
+	})
+}
+
+func Test_p2_sendBundle_maxTS(t *testing.T) {
+	arg := setup()
+	var currentTime int64 = time.Now().Unix()
+	t.Run("maxTS_more_than_current+300", func(t *testing.T) {
+		msg := conf.TimestampTop
+		convertedTime := uint64(currentTime + 301)
+		arg.MaxTS = &convertedTime
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
+		// assert.Nil(t, err)
+		if err != nil {
+			log.Println(" failed: ", err.Error())
+			assert.True(t, strings.Contains(err.Error(), msg))
+		}
+		for _, tx := range txs {
+			// 依次检查bundle中的交易是否成功上链
+			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+		}
+	})
+
+	t.Run("maxTS_less_than_current", func(t *testing.T) {
+		msg := conf.TimestampMC
+		convertedTime := uint64(30000)
+		arg.MaxTS = &convertedTime
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
+		if err != nil {
+			log.Println(" failed: ", err.Error())
+			assert.True(t, strings.Contains(err.Error(), msg))
+		}
+		utils.BlockheightIncreased(t)
+		for _, tx := range txs {
+			// 依次检查bundle中的交易是否成功上链
+			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+		}
+
+	})
+}
+
+/*
+sendBundle 参数 - minTimeStamp
+*/
+func Test_p1_sendBundle_minTS(t *testing.T) {
+	arg := setup()
+	t.Run("sendValidBundle_arg_minT", func(t *testing.T) {
+		//minTimestamp为未来时间 未超过设置时间 5*60 限制MaxBN生效
+		var currentTime int64 = time.Now().Unix()
+		convertedTime := uint64(currentTime + 2)
+		convertedTime1 := uint64(currentTime + 3)
+		blockNum, err := arg.Client.BlockNumber(arg.Ctx)
+		if err != nil {
+			fmt.Println("BlockNumber", "err", err)
+		}
+		arg.MaxBN = blockNum + 1
+		arg.MinTS = &convertedTime
+		arg.MaxTS = &convertedTime1
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		cbn := utils.SendBundlesMined(t, arg, bundleArgs)
+		utils.WaitMined(txs, cbn)
+		for _, tx := range txs {
+			// 依次检查bundle中的交易是否成功上链
+			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+		}
+	})
+	t.Run("minTimeStamp_less_than_currentTime", func(t *testing.T) {
+		currentTime := time.Now().Unix()
+		convertedTime := uint64(currentTime - 30)
+		convertedTime1 := uint64(currentTime + 1)
+		arg.MinTS = &convertedTime
+		arg.MaxTS = &convertedTime1
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		cbn := utils.SendBundlesMined(t, arg, bundleArgs)
+		utils.WaitMined(txs, cbn)
+		for _, tx := range txs {
+			// 依次检查bundle中的交易是否成功上链
+			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+		}
+	})
+}
+
+func Test_p2_sendBundle_minTS(t *testing.T) {
+	arg := setup()
+	currentTime := time.Now().Unix()
+
+	t.Run("sendValidBundle_arg_minTS_no_drop", func(t *testing.T) {
+		//minTimestamp为未来时间 未超过设置时间 5*60 不限制MaxBN 生效
+		convertedTime := uint64(currentTime + 9)
+		convertedTime1 := uint64(currentTime + 10)
+		arg.MinTS = &convertedTime
+		arg.MaxTS = &convertedTime1
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
+		assert.Nil(t, err)
+
+		utils.BlockheightIncreased(t)
+		for _, tx := range txs {
+			// 依次检查bundle中的交易是否成功上链
+			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+		}
+		utils.BlockheightIncreased(t)
+		for _, tx := range txs {
+			// 依次检查bundle中的交易是否成功上链
+			blkN := utils.CheckBundleTx(t, *tx, true, conf.Txsucceed)
+			tx_blk = append(tx_blk, blkN)
+		}
+		utils.TxinSameBlk(tx_blk)
+	})
+
+	//  minTimestamp 超出5*60
+	t.Run("minTimestamp_later_than_Limit", func(t *testing.T) {
+		convertedTime := uint64(currentTime + 301)
+		arg.MinTS = &convertedTime
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
+		if err != nil {
+			log.Println(" failed: ", err.Error())
+			assert.True(t, strings.Contains(err.Error(), conf.TimestampMM))
+		}
+		utils.BlockheightIncreased(t)
+		for _, tx := range txs {
+			// 依次检查bundle中的交易是否成功上链
+			blkN := utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+			tx_blk = append(tx_blk, blkN)
+		}
+		utils.TxinSameBlk(tx_blk)
+	})
+
+	//  minTimestamp 为5*60 maxTimestamp 为5*60 +1
+	t.Run("minTimestamp_equal_Limit", func(t *testing.T) {
+		currentTime = time.Now().Unix()
+		convertedTime := uint64(currentTime + int64(rand.Intn(timeLimit)))
+		convertedTime1 := uint64(currentTime + int64(rand.Intn(timeLimit+1)))
+
+		arg.MinTS = &convertedTime
+		arg.MaxTS = &convertedTime1
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
+		if err != nil {
+			log.Println(" failed: ", err.Error())
+			assert.True(t, strings.Contains(err.Error(), conf.TimestampTop), "Expected result to be %d, but got %d", conf.TimestampTop, err.Error())
+		}
+		utils.BlockheightIncreased(t)
+		for _, tx := range txs {
+			// 依次检查bundle中的交易是否成功上链
+			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+		}
+		// 300后可上链
+	})
+
+}
+
+/*
+sendBundle 参数 - maxTimeStamp&minTimeStamp
+*/
+func Test_p2_sendBundle_mmTS(t *testing.T) {
+	arg := setup()
+	var currentTime int64 = time.Now().Unix()
+	msg := conf.TimestampMM
+	convertedTime := uint64(currentTime + int64(rand.Intn(timeLimit)))
+
+	//maxTimestamp 等于 minTimestamp
+	t.Run("maxTimestamp_equal_minTimestamp", func(t *testing.T) {
+		arg.MaxTS = &convertedTime
+		arg.MinTS = &convertedTime
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
+		if err != nil {
+			log.Println(" failed: ", err.Error())
+			assert.True(t, strings.Contains(err.Error(), msg))
+		}
+		utils.BlockheightIncreased(t)
+		for _, tx := range txs {
+			// 依次检查bundle中的交易是否成功上链
+			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+		}
+
+	})
+
+	//maxTimestamp 小于 minTimestamp
+	t.Run("maxTimestamp_less_than_minTimestamp", func(t *testing.T) {
+		convertedTime := uint64(currentTime + 3)
+		convertedTime1 := uint64(currentTime + 1)
+		arg.MinTS = &convertedTime
+		arg.MaxTS = &convertedTime1
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
+		if err != nil {
+			log.Println(" failed: ", err.Error())
+			assert.True(t, strings.Contains(err.Error(), msg))
+		}
+		utils.BlockheightIncreased(t)
+		for _, tx := range txs {
+			// 依次检查bundle中的交易是否成功上链
+			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+		}
+
+	})
+}
+
+/*
+sendBundle 并发
+*/
+// diff account
 func Test_p0_sendBundle_batch(t *testing.T) {
 	arg := setup()
 	client, err := ethclient.Dial(conf.Url)
@@ -319,297 +620,4 @@ func Test_p1_sendBundle_conflict(t *testing.T) {
 		}
 		wg.Wait()
 	})
-}
-
-// sendBundle_arg_maxBN
-func Test_p1_sendBundle_maxBN(t *testing.T) {
-	// maxBlockNumber最多设为当前区块号+100
-	arg := setup()
-	t.Run("sendValidBundle_arg_maxBN_large", func(t *testing.T) {
-		blockNum, err := arg.Client.BlockNumber(arg.Ctx)
-		if err != nil {
-			fmt.Println("BlockNumber", "err", err)
-		}
-		arg.MaxBN = blockNum + 101
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
-		err = arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
-		if err != nil {
-			log.Println(" failed: ", err.Error())
-			assert.True(t, strings.Contains(err.Error(), conf.MaxBlockNumberL))
-		}
-		utils.BlockheightIncreased(t)
-		for _, tx := range txs {
-			// 依次检查bundle中的交易是否成功上链
-			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
-		}
-	})
-	// 过期的区块号
-	maxBNLists := []int{0, 10, 999}
-	for _, count := range maxBNLists {
-		t.Run("sendValidBundle_arg_maxBN_small", func(t *testing.T) {
-			arg.MaxBN = uint64(count)
-			txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
-			err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
-			if err != nil {
-				log.Println(" failed: ", err.Error())
-				assert.True(t, strings.Contains(err.Error(), conf.MaxBlockNumberC))
-			}
-			if count != 0 {
-				for _, tx := range txs {
-					utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
-				}
-			}
-		})
-	}
-
-}
-
-func Test_p1_sendBundle_maxTS(t *testing.T) {
-	arg := setup()
-	//区块号合法
-	t.Run("sendValidBundle_arg_maxTS_legal", func(t *testing.T) {
-		currentTime := time.Now().Unix()
-		futureTime := currentTime + int64(rand.Intn(300))
-		convertedTime := uint64(futureTime)
-		arg.MaxTS = &convertedTime
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
-		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
-		assert.Nil(t, err)
-		t.Log(txs)
-		// t.Log(tx_type)
-		// BlockheightIncreased(t)
-		// for _, tx := range txs {
-		// 	// 依次检查bundle中的交易是否成功上链
-		// 	// 根据 交易index 确定校验的 tx_type
-		// 	CheckBundleTx(t, *tx, true, conf.Txsucceed)
-		// }
-	})
-	//区块号合法
-	t.Run("sendValidBundle_arg_maxTS_maxBN", func(t *testing.T) {
-		currentTime := time.Now().Unix()
-		// 指定bundle 最大为当前区块的下一个块，bundle时间为两个块后
-		// expected 不会上链
-		convertedTime := uint64(currentTime + 11)
-		blockNum, err := arg.Client.BlockNumber(arg.Ctx)
-		if err != nil {
-			fmt.Println("BlockNumber", "err", err)
-		}
-		arg.MaxBN = blockNum + 2
-		arg.MinTS = &convertedTime
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
-		cbn := utils.SendBundlesMined(t, arg, bundleArgs)
-		utils.WaitMined(txs, cbn)
-		for _, tx := range txs {
-			// 依次检查bundle中的交易是否成功上链
-			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
-		}
-	})
-}
-
-func Test_p2_sendBundle_maxTS(t *testing.T) {
-	arg := setup()
-	var currentTime int64 = time.Now().Unix()
-	t.Run("sendValidBundle_arg_maxTS_large", func(t *testing.T) {
-		msg := conf.TimestampTop
-		convertedTime := uint64(currentTime + 301)
-		arg.MaxTS = &convertedTime
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
-		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
-		// assert.Nil(t, err)
-		if err != nil {
-			log.Println(" failed: ", err.Error())
-			assert.True(t, strings.Contains(err.Error(), msg))
-		}
-		for _, tx := range txs {
-			// 依次检查bundle中的交易是否成功上链
-			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
-		}
-	})
-
-	t.Run("sendValidBundle_arg_maxTS_small", func(t *testing.T) {
-		msg := conf.TimestampMC
-		convertedTime := uint64(30000)
-		arg.MaxTS = &convertedTime
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
-		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
-		if err != nil {
-			log.Println(" failed: ", err.Error())
-			assert.True(t, strings.Contains(err.Error(), msg))
-		}
-		utils.BlockheightIncreased(t)
-		for _, tx := range txs {
-			// 依次检查bundle中的交易是否成功上链
-			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
-		}
-
-	})
-}
-
-func Test_p1_sendBundle_minTS(t *testing.T) {
-	// maxTimestamp最多设为当前区块号+5minutes
-	arg := setup()
-	t.Run("sendValidBundle_arg_minT", func(t *testing.T) {
-		var currentTime int64 = time.Now().Unix()
-		convertedTime := uint64(currentTime + 2)
-		convertedTime1 := uint64(currentTime + 3)
-		arg.MinTS = &convertedTime
-		arg.MaxTS = &convertedTime1
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
-		cbn := utils.SendBundlesMined(t, arg, bundleArgs)
-		utils.WaitMined(txs, cbn)
-		for _, tx := range txs {
-			// 依次检查bundle中的交易是否成功上链
-			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
-		}
-	})
-	t.Run("sendValidBundle_arg_min_drop", func(t *testing.T) {
-		currentTime := time.Now().Unix()
-		convertedTime := uint64(currentTime - 3)
-		convertedTime1 := uint64(currentTime + 1)
-		arg.MinTS = &convertedTime
-		arg.MaxTS = &convertedTime1
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
-		cbn := utils.SendBundlesMined(t, arg, bundleArgs)
-		utils.WaitMined(txs, cbn)
-		for _, tx := range txs {
-			// 依次检查bundle中的交易是否成功上链
-			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
-		}
-	})
-}
-
-func Test_p2_sendBundle_minTS(t *testing.T) {
-	arg := setup()
-	currentTime := time.Now().Unix()
-
-	t.Run("sendValidBundle_arg_no_drop", func(t *testing.T) {
-		convertedTime := uint64(currentTime + 9)
-		convertedTime1 := uint64(currentTime + 10)
-		arg.MinTS = &convertedTime
-		arg.MaxTS = &convertedTime1
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
-		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
-		assert.Nil(t, err)
-
-		utils.BlockheightIncreased(t)
-		for _, tx := range txs {
-			// 依次检查bundle中的交易是否成功上链
-			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
-		}
-		utils.BlockheightIncreased(t)
-		for _, tx := range txs {
-			// 依次检查bundle中的交易是否成功上链
-			blkN := utils.CheckBundleTx(t, *tx, true, conf.Txsucceed)
-			tx_blk = append(tx_blk, blkN)
-		}
-		utils.TxinSameBlk(tx_blk)
-	})
-
-	//  maxTimestamp 超出5*60
-	t.Run("sendValidBundle_arg_minTS_large", func(t *testing.T) {
-		convertedTime := uint64(currentTime + 301)
-		arg.MinTS = &convertedTime
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
-		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
-		if err != nil {
-			log.Println(" failed: ", err.Error())
-			assert.True(t, strings.Contains(err.Error(), conf.TimestampMM))
-		}
-		utils.BlockheightIncreased(t)
-		for _, tx := range txs {
-			// 依次检查bundle中的交易是否成功上链
-			blkN := utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
-			tx_blk = append(tx_blk, blkN)
-		}
-		utils.TxinSameBlk(tx_blk)
-	})
-
-	//  maxTimestamp 为5*60
-	t.Run("sendValidBundle_arg_maxTS_limit", func(t *testing.T) {
-		currentTime = time.Now().Unix()
-		convertedTime := uint64(currentTime + 300)
-		convertedTime1 := uint64(currentTime + 301)
-
-		arg.MinTS = &(convertedTime)
-		arg.MaxTS = &convertedTime1
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
-		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
-		if err != nil {
-			log.Println(" failed: ", err.Error())
-			assert.True(t, strings.Contains(err.Error(), conf.TimestampTop), "Expected result to be %d, but got %d", conf.TimestampTop, err.Error())
-		}
-		utils.BlockheightIncreased(t)
-		for _, tx := range txs {
-			// 依次检查bundle中的交易是否成功上链
-			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
-		}
-		// 300后可上链
-	})
-
-}
-
-func Test_p2_sendBundle_mmTS(t *testing.T) {
-	arg := setup()
-	var currentTime int64 = time.Now().Unix()
-	msg := conf.TimestampMM
-	convertedTime := uint64(currentTime + int64(rand.Intn(300)))
-
-	//maxTimestamp 等于 minTimestamp
-	t.Run("sendValidBundle_arg_maxminTS", func(t *testing.T) {
-		arg.MaxTS = &convertedTime
-		arg.MinTS = &convertedTime
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
-		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
-		if err != nil {
-			log.Println(" failed: ", err.Error())
-			assert.True(t, strings.Contains(err.Error(), msg))
-		}
-		utils.BlockheightIncreased(t)
-		for _, tx := range txs {
-			// 依次检查bundle中的交易是否成功上链
-			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
-		}
-
-	})
-
-	//maxTimestamp 小于 minTimestamp
-	t.Run("sendValidBundle_arg_minmaxTS", func(t *testing.T) {
-		convertedTime := uint64(currentTime + 3)
-		convertedTime1 := uint64(currentTime + 1)
-		arg.MinTS = &convertedTime
-		arg.MaxTS = &convertedTime1
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
-		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
-		if err != nil {
-			log.Println(" failed: ", err.Error())
-			assert.True(t, strings.Contains(err.Error(), msg))
-		}
-		utils.BlockheightIncreased(t)
-		for _, tx := range txs {
-			// 依次检查bundle中的交易是否成功上链
-			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
-		}
-
-	})
-}
-
-// 压力测试函数
-// 持续发送bundles
-func BenchmarkSendBundless(b *testing.B) {
-	arg := setup()
-	// 循环执行测试函数
-	for i := 0; i < b.N; i++ {
-		// 在每次迭代中调用接口
-		log.Println("run case")
-		txs, err := cases.ValidBundle_NilPayBidTx_2(&arg)
-		if err != nil {
-			log.Println(" failed: ", err.Error())
-		} else {
-			log.Println("ValidBundle_NilPayBidTx_1 succeed ")
-		}
-		println(txs)
-		if err != nil {
-			b.Fatalf("call failed: %v", err)
-		}
-	}
 }
