@@ -67,8 +67,6 @@ func User_tx(root_name string, contract common.Address, data []byte, gasLimit *b
 	chainID, err := client.ChainID(ctx)
 	if err != nil {
 		fmt.Printf("err %v\n", err)
-	} else {
-		fmt.Printf("chainID %v\n", chainID)
 	}
 
 	arg := &cases.BidCaseArg{
@@ -184,8 +182,7 @@ func ConcurSendBundles(t *testing.T, args []*cases.BidCaseArg, bundleArgs_lsit [
 			// msg := "non-reverting tx in bundle failed"
 			if err != nil {
 				log.Println(" failed: ", err.Error())
-				assert.True(t, strings.Contains(err.Error(), "non-reverting tx in bundle failed"))
-				// assert.True(t, strings.Contains(err.Error(), conf.InvalidTx))
+				assert.True(t, strings.Contains(err.Error(), conf.InvalidTx))
 			}
 			wg.Done()
 		}(i)

@@ -4,6 +4,7 @@ import (
 	"log"
 	"math/big"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/core/types"
@@ -22,57 +23,69 @@ var valuecpABI = utils.Contract{ABI: *ValueCpABI}
 var bet_t = utils.GeneEncodedData(valuecpABI, "bet", true)
 var bet_f = utils.GeneEncodedData(valuecpABI, "bet", false)
 
-func Test_p0_value_perservation(t *testing.T) {
+func Test_p0_value_preservation(t *testing.T) {
 	var txs types.Transactions
-	bribe_fee_1 := big.NewInt(0.01 * 1e18)
-	bribe_fee_2 := big.NewInt(0.005 * 1e18)
+	bribeFee1 := big.NewInt(0.01 * 1e18)
+	bribeFee2 := big.NewInt(0.005 * 1e18)
 	testCases := []struct {
-		a        []byte
-		b        []byte
-		a_minted bool //
-		b_minted bool
+		a         []byte
+		b         []byte
+		aMinted   bool // tx1 是否上链
+		bMinted   bool // tx2 是否上链
+		aContract bool // tx1 合约参数
 	}{
-		{bet_t, bet_t, true, true},  // 链上交易顺序：[tx1,tx2]
-		{bet_t, bet_f, true, false}, //链上交易顺序：[tx1]
-		{bet_f, bet_t, true, true},  // 链上交易顺序：[tx1,tx2]
-		{bet_f, bet_f, true, false}, //链上交易顺序：[tx1]
+		{bet_t, bet_t, true, true, true},   // 链上交易顺序：[tx1,tx2]
+		{bet_t, bet_f, true, false, true},  // 链上交易顺序：[tx1]
+		{bet_f, bet_t, true, true, false},  // 链上交易顺序：[tx1,tx2]
+		{bet_f, bet_f, true, false, false}, // 链上交易顺序：[tx1]
 	}
 	for index, tc := range testCases {
-		t.Run("backrun_value_perservation"+strconv.Itoa(index), func(t *testing.T) {
-			// defer utils.ResetContract(t, conf.Mylock, reset_data)
+		t.Run("backRun_value_preservation"+strconv.Itoa(index), func(t *testing.T) {
+			//defer utils.ResetContract(t, conf.Mylock, reset_data)
 
-			t.Log("[Step-1] User 1 bundle [tx1], tx1 not allowed to revert.\n")
-			usr1_arg := utils.User_tx(conf.RootPk2, conf.ValueCp, tc.a, conf.High_gas)
-			txs_1, revertTxHashes := cases.GenerateBNBTxs(&usr1_arg, bribe_fee_1, usr1_arg.Data, 1)
+			t.Logf("[Step-1] User 1 bundle [tx1], tx1 Contract bet_%v .\n", tc.aContract)
+			usr1Arg := utils.User_tx(conf.RootPk2, conf.ValueCp, tc.a, conf.High_gas)
+
+			txs_1, revertTxHashes := cases.GenerateBNBTxs(&usr1Arg, bribeFee1, usr1Arg.Data, 1)
 			bundleArgs1 := utils.AddBundle(txs, txs_1, revertTxHashes, 0)
 
-			t.Log("[Step-2] User 2 bundle [tx2], tx2 not allowed to revert.\n")
-			usr2_arg := utils.User_tx(conf.RootPk3, conf.ValueCp, tc.b, conf.High_gas)
-			blockNum, _ := usr2_arg.Client.BlockNumber(usr2_arg.Ctx)
+			t.Logf("[Step-2] User 2 bundle [tx2], tx2 Contract bet_%v .\n", tc.bMinted)
+			usr2Arg := utils.User_tx(conf.RootPk3, conf.ValueCp, tc.b, conf.High_gas)
+			txs_2, revertTxHashes := cases.GenerateBNBTxs(&usr2Arg, bribeFee2, usr2Arg.Data, 1)
+			blockNum, _ := usr1Arg.Client.BlockNumber(usr1Arg.Ctx)
+			t.Logf("Current Blk_num : %v .\n", blockNum)
 			MaxBN := blockNum + 1
-			txs_2, revertTxHashes := cases.GenerateBNBTxs(&usr2_arg, bribe_fee_2, usr2_arg.Data, 1)
 			bundleArgs2 := utils.AddBundle(txs, txs_2, revertTxHashes, MaxBN)
 
-			args[0] = &usr1_arg
-			args[1] = &usr2_arg
+			args[0] = &usr1Arg
+			args[1] = &usr2Arg
 			bundleArgs_lsit[0] = bundleArgs1
 			bundleArgs_lsit[1] = bundleArgs2
-			t.Log("[Step-4] User 1 and User 2 send bundles .\n")
+			t.Log("[Step-3] User 1 and User 2 send bundles .\n")
 			utils.ConcurSendBundles(t, args, bundleArgs_lsit)
 
+			t.Log("[Step-4] Check tx Minted .\n")
+
 			response1 := utils.GetTransactionReceipt(*txs_1[0])
-			tx1_index := response1.Result.TransactionIndex
+			tx1Index := response1.Result.TransactionIndex
+
+			blk, _ := strconv.ParseInt(strings.TrimPrefix(response1.Result.BlockNumber, "0x"), 16, 64)
+			t.Logf("Tx1 in Blk : %v .\n", blk)
+			assert.Equal(t, blk, int64(MaxBN))
 			response2 := utils.GetTransactionReceipt(*txs_2[0])
-			tx2_index := response2.Result.TransactionIndex
-			log.Println(tx1_index, tx2_index)
-			if tc.a_minted {
-				assert.Equal(t, tx1_index, "0x0")
-			}
-			if tc.b_minted {
-				assert.Equal(t, tx2_index, "0x1")
+			tx2Index := response2.Result.TransactionIndex
+			if tc.aMinted {
+				assert.Equal(t, tx1Index, "0x0", "tx Index wrong", txs_1[0].Hash().Hex())
 			} else {
-				assert.Equal(t, tx2_index, "")
+				assert.Equal(t, tx1Index, "")
 			}
+			if tc.bMinted {
+				assert.Equal(t, response1.Result.BlockNumber, response2.Result.BlockNumber, "tx1 tx2 in diff Block")
+				assert.Equal(t, tx2Index, "0x1")
+			} else {
+				assert.Equal(t, tx2Index, "")
+			}
+			//	237052
 
 		})
 	}
