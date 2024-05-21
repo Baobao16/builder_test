@@ -196,21 +196,21 @@ func SendLockMempool(usr string, contract common.Address, data []byte, revert bo
 	// usr_arg.GasLimit = big.NewInt(conf.Max_gasLimit)
 	// usr_arg.GasPrice = big.NewInt(conf.Min_gasPrice)
 	if revert {
-		log.Printf("Mempool transaction will in bundle RevertList . ")
+		log.Printf("mem_pool transaction  will in bundle RevertList . ")
 		usr_arg.RevertListnormal = []int{0} // 当前交易被记入RevertList
 	}
-	log.Printf("Set Mempool transaction ")
+	log.Printf("Set mem_pool transaction  ")
 	tx, revertHash := cases.GenerateBNBTxs(&usr_arg, usr_arg.SendAmount, usr_arg.Data, 1)
 	// txBytes := make([]hexutil.Bytes, 0)
 	// for _, tx := range tx {
 	// 	txByte, err := tx.MarshalBinary()
-	// 	fmt.Printf("sendLockMempool txhash %v\n", tx.Hash().Hex())
+	// 	fmt.Printf("sendLockmem_pooltxhash %v\n", tx.Hash().Hex())
 	// 	if err != nil {
 	// 		log.Println("tx.MarshalBinary", "err", err)
 	// 	}
 	// 	txBytes = append(txBytes, txByte)
 	// }
-	// log.Printf("Set Mempool transaction %v [gasPrice: %v , gasLimit : %v] \n", tx[0].Hash(), usr_arg.GasPrice, usr_arg.GasLimit)
+	// log.Printf("Set mem_pool transaction  %v [gasPrice: %v , gasLimit : %v] \n", tx[0].Hash(), usr_arg.GasPrice, usr_arg.GasLimit)
 	err := usr_arg.Client.SendTransaction(usr_arg.Ctx, tx[0])
 
 	if err != nil {
@@ -230,7 +230,6 @@ func ConcurSendBundles(t *testing.T, args []*cases.BidCaseArg, bundleArgs_lsit [
 		go func(i int) {
 			// time.Sleep(time.Duration(i) * time.Second)
 			err := args[i].BuilderClient.SendBundle(args[i].Ctx, bundleArgs_lsit[i])
-			// msg := "non-reverting tx in bundle failed"
 			if err != nil {
 				log.Println(" failed: ", err.Error())
 				assert.True(t, strings.Contains(err.Error(), conf.InvalidTx))
@@ -289,7 +288,7 @@ func ResetContract(t *testing.T, contract common.Address, data []byte) {
 	t.Log("Root User reset Contract lock\n")
 	usr_arg := User_tx(conf.RootPk, contract, data, conf.High_gas) //"gasUsed":"0x5bb2"  23474
 	usr_arg.TxCount = 1
-	txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &usr_arg)
+	txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&usr_arg)
 	bn, _ := usr_arg.Client.BlockNumber(usr_arg.Ctx)
 	log.Printf("Current Block height is: %v\n", bn)
 

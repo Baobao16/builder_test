@@ -59,7 +59,7 @@ var (
 	Validator = flag.String("validator", "0xF474Cf03ccEfF28aBc65C9cbaE594F725c80e12d", "validator address")
 )
 
-// 模拟bundle 不会真的上链
+// 模拟 bundle 不会真的上链
 type SendBundleArgs struct {
 	Txs               []hexutil.Bytes `json:"txs"`
 	MaxBlockNumber    uint64          `json:"maxBlockNumber"`

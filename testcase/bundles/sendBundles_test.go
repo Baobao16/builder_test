@@ -32,7 +32,7 @@ func Test_p0_sendBundle(t *testing.T) {
 	t.Run("sendValidBundle_tx", func(t *testing.T) {
 		// bundle 中均为合法转账交易
 		t.Log("Start sendBundle \n")
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&arg)
 		cbn := utils.SendBundlesMined(t, arg, bundleArgs)
 		utils.WaitMined(txs, cbn)
 		for _, tx := range txs {
@@ -59,7 +59,7 @@ func Test_p0_sendBundle_revert(t *testing.T) {
 		t.Log("generate revert transaction \n")
 		arg.TxCount = 3
 		arg.RevertList = []int{0, 1, 2}
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&arg)
 		cbn := utils.SendBundlesMined(t, arg, bundleArgs)
 		utils.WaitMined(txs, cbn)
 		for _, tx := range txs {
@@ -74,7 +74,7 @@ func Test_p0_sendBundle_revert(t *testing.T) {
 		t.Log("generate revert transaction \n")
 		arg.TxCount = 10
 		arg.RevertList = []int{0, 1, 2}
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&arg)
 		cbn := utils.SendBundlesMined(t, arg, bundleArgs)
 		utils.WaitMined(txs, cbn)
 		for index, tx := range txs {
@@ -102,7 +102,7 @@ func Test_p1_sendBundle_revert(t *testing.T) {
 		t.Log("generate revert transaction \n")
 		arg.TxCount = 4
 		arg.RevertListAdd = []int{3}
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&arg)
 		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
 		if err != nil {
 			log.Println(" failed: ", err.Error())
@@ -120,7 +120,7 @@ func Test_p1_sendBundle_revert(t *testing.T) {
 		t.Log("generate revert transaction \n")
 		arg.TxCount = 10
 		arg.RevertListAdd = []int{3, 4, 5}
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&arg)
 		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
 		if err != nil {
 			log.Println(" failed: ", err.Error())
@@ -139,7 +139,7 @@ func Test_p1_sendBundle_revert(t *testing.T) {
 		arg.TxCount = 3
 		arg.RevertList = []int{}
 		arg.Data = conf.TotallysplWBNB_code
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&arg)
 		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
 		if err != nil {
 			log.Println(" failed: ", err.Error())
@@ -171,7 +171,7 @@ func Test_p2_sendBundle_txCount(t *testing.T) {
 			} else if count == 3000 {
 				msg = conf.TxCountLimit
 			}
-			_, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+			_, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&arg)
 			err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
 			if err != nil {
 				log.Println(" failed: ", err.Error())
@@ -201,7 +201,7 @@ func Test_p1_sendBundle_maxBN(t *testing.T) {
 			fmt.Println("BlockNumber", "err", err)
 		}
 		arg.MaxBN = blockNum + 101
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&arg)
 		err = arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
 		if err != nil {
 			log.Println(" failed: ", err.Error())
@@ -218,7 +218,7 @@ func Test_p1_sendBundle_maxBN(t *testing.T) {
 	for _, count := range maxBNLists {
 		t.Run("maxBlockNumber_less_than_currentBlk", func(t *testing.T) {
 			arg.MaxBN = uint64(count)
-			txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+			txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&arg)
 			err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
 			if err != nil {
 				log.Println(" failed: ", err.Error())
@@ -244,7 +244,7 @@ func Test_p1_sendBundle_maxTS(t *testing.T) {
 		futureTime := currentTime + int64(rand.Intn(timeLimit))
 		convertedTime := uint64(futureTime)
 		arg.MaxTS = &convertedTime
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&arg)
 		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
 		assert.Nil(t, err)
 		t.Log(txs)
@@ -268,7 +268,7 @@ func Test_p1_sendBundle_maxTS(t *testing.T) {
 		}
 		arg.MaxBN = blockNum + 1
 		arg.MinTS = &convertedTime
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&arg)
 		cbn := utils.SendBundlesMined(t, arg, bundleArgs)
 		utils.WaitMined(txs, cbn)
 		for _, tx := range txs {
@@ -285,7 +285,7 @@ func Test_p2_sendBundle_maxTS(t *testing.T) {
 		msg := conf.TimestampTop
 		convertedTime := uint64(currentTime + 301)
 		arg.MaxTS = &convertedTime
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&arg)
 		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
 		// assert.Nil(t, err)
 		if err != nil {
@@ -302,7 +302,7 @@ func Test_p2_sendBundle_maxTS(t *testing.T) {
 		msg := conf.TimestampMC
 		convertedTime := uint64(30000)
 		arg.MaxTS = &convertedTime
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&arg)
 		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
 		if err != nil {
 			log.Println(" failed: ", err.Error())
@@ -334,7 +334,7 @@ func Test_p1_sendBundle_minTS(t *testing.T) {
 		arg.MaxBN = blockNum + 1
 		arg.MinTS = &convertedTime
 		arg.MaxTS = &convertedTime1
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&arg)
 		cbn := utils.SendBundlesMined(t, arg, bundleArgs)
 		utils.WaitMined(txs, cbn)
 		for _, tx := range txs {
@@ -349,7 +349,7 @@ func Test_p1_sendBundle_minTS(t *testing.T) {
 		arg.MaxBN = 0
 		arg.MinTS = &convertedTime
 		arg.MaxTS = &convertedTime1
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&arg)
 		cbn := utils.SendBundlesMined(t, arg, bundleArgs)
 		utils.WaitMined(txs, cbn)
 		for _, tx := range txs {
@@ -369,7 +369,7 @@ func Test_p2_sendBundle_minTS(t *testing.T) {
 		convertedTime1 := uint64(currentTime + 10)
 		arg.MinTS = &convertedTime
 		arg.MaxTS = &convertedTime1
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&arg)
 		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
 		assert.Nil(t, err)
 
@@ -391,7 +391,7 @@ func Test_p2_sendBundle_minTS(t *testing.T) {
 	t.Run("minTimestamp_later_than_Limit", func(t *testing.T) {
 		convertedTime := uint64(currentTime + 301)
 		arg.MinTS = &convertedTime
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&arg)
 		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
 		if err != nil {
 			log.Println(" failed: ", err.Error())
@@ -414,7 +414,7 @@ func Test_p2_sendBundle_minTS(t *testing.T) {
 
 		arg.MinTS = &convertedTime
 		arg.MaxTS = &convertedTime1
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&arg)
 		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
 		if err != nil {
 			log.Println(" failed: ", err.Error())
@@ -443,7 +443,7 @@ func Test_p2_sendBundle_mmTS(t *testing.T) {
 	t.Run("maxTimestamp_equal_minTimestamp", func(t *testing.T) {
 		arg.MaxTS = &convertedTime
 		arg.MinTS = &convertedTime
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&arg)
 		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
 		if err != nil {
 			log.Println(" failed: ", err.Error())
@@ -463,7 +463,7 @@ func Test_p2_sendBundle_mmTS(t *testing.T) {
 		convertedTime1 := uint64(currentTime + 1)
 		arg.MinTS = &convertedTime
 		arg.MaxTS = &convertedTime1
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&arg)
 		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
 		if err != nil {
 			log.Println(" failed: ", err.Error())
@@ -532,7 +532,7 @@ func Test_p0_sendBundle_batch(t *testing.T) {
 			wg.Add(1)
 			go func(i int) {
 				time.Sleep(time.Duration(i) * time.Second)
-				_, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, args[i])
+				_, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(args[i])
 				err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
 				assert.Nil(t, err)
 				wg.Done()
@@ -555,7 +555,7 @@ func Test_p1_sendBundle_conflict(t *testing.T) {
 			wg.Add(1)
 			go func(i int) {
 				time.Sleep(time.Duration(i) * time.Second)
-				txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, args[i])
+				txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(args[i])
 				err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
 				if err != nil {
 					assert.True(t, strings.Contains(err.Error(), conf.BundleConflict))

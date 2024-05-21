@@ -10,12 +10,12 @@ import (
 // RouterV2: 0xE1f45ef433b2ADF7583917974543a2df2161Dd6c
 // Token: 0x429B2BEa55c0F2a30318d21D029EDc847977344F
 var (
-	Mylock    = common.HexToAddress("0xf9a06746c193e0a6ce343e8684794ad911e71072") // 0514new
+	Mylock    = common.HexToAddress("0xd324788cb01def44a4f89d775718e577bb4553c1") // 0514new
 	WBNB      = common.HexToAddress("0xE5454b639B241c07Fc0d55b23690F9CeE18b7E4f")
 	RouterV2  = common.HexToAddress("0xE1f45ef433b2ADF7583917974543a2df2161Dd6c")
 	Token     = common.HexToAddress("0x429B2BEa55c0F2a30318d21D029EDc847977344F")
-	SpecialOp = common.HexToAddress("0x6838b4ad6b5d19ea47b1de70d4cb6710af075069")
-	ValueCp   = common.HexToAddress("0x7f4501887f46726a1b768564f532a48cd8739412")
+	SpecialOp = common.HexToAddress("0x05A9d51810475F47C914b97268ac53198dA89D68")
+	ValueCp   = common.HexToAddress("0x035b6E463A445aF6d12Dbf9b2D0150c15Be5b357")
 
 	// Coinbase = common.HexToAddress("0x7d83033eFaE53d3250cff2d9e39E4a63fdEd9712")
 

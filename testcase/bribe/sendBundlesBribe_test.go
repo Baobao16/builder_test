@@ -16,11 +16,14 @@ import (
 )
 
 var ValueCpABI = utils.GeneABI(conf.ValueCp_path)
-var valuecpABI = utils.Contract{ABI: *ValueCpABI}
+var valueCpABI = utils.Contract{ABI: *ValueCpABI}
+var SpeABI = utils.GeneABI(conf.Spe_path)
+var speABI = utils.Contract{ABI: *SpeABI}
 
-// var SpeABI = utils.GeneABI(conf.Spe_path)
-var bet_t = utils.GeneEncodedData(valuecpABI, "bet", true)
-var bet_f = utils.GeneEncodedData(valuecpABI, "bet", false)
+var betT = utils.GeneEncodedData(valueCpABI, "bet", true)
+var betF = utils.GeneEncodedData(valueCpABI, "bet", false)
+
+//var getCoinbase = utils.GeneEncodedData(speABI, "getCoinbase")
 
 func Test_p0_value_preservation(t *testing.T) {
 	var txs types.Transactions
@@ -33,10 +36,10 @@ func Test_p0_value_preservation(t *testing.T) {
 		bMinted   bool // tx2 是否上链
 		aContract bool // tx1 合约参数
 	}{
-		{bet_t, bet_t, true, true, true},   // 链上交易顺序：[tx1,tx2]
-		{bet_t, bet_f, true, false, true},  // 链上交易顺序：[tx1]
-		{bet_f, bet_t, true, true, false},  // 链上交易顺序：[tx1,tx2]
-		{bet_f, bet_f, true, false, false}, // 链上交易顺序：[tx1]
+		{betT, betT, true, true, true},   // 链上交易顺序：[tx1,tx2]
+		{betT, betF, true, false, true},  // 链上交易顺序：[tx1]
+		{betF, betT, true, true, false},  // 链上交易顺序：[tx1,tx2]
+		{betF, betF, true, false, false}, // 链上交易顺序：[tx1]
 	}
 	for index, tc := range testCases {
 		t.Run("backRun_value_preservation"+strconv.Itoa(index), func(t *testing.T) {
@@ -44,17 +47,16 @@ func Test_p0_value_preservation(t *testing.T) {
 
 			t.Logf("[Step-1] User 1 bundle [tx1], tx1 Contract bet_%v .\n", tc.aContract)
 			usr1Arg := utils.User_tx(conf.RootPk2, conf.ValueCp, tc.a, conf.High_gas)
-
-			txs_1, revertTxHashes := cases.GenerateBNBTxs(&usr1Arg, bribeFee1, usr1Arg.Data, 1)
-			bundleArgs1 := utils.AddBundle(txs, txs_1, revertTxHashes, 0)
+			txs1, revertTxHashes := cases.GenerateBNBTxs(&usr1Arg, bribeFee1, usr1Arg.Data, 1)
+			bundleArgs1 := utils.AddBundle(txs, txs1, revertTxHashes, 0)
 
 			t.Logf("[Step-2] User 2 bundle [tx2], tx2 Contract bet_%v .\n", tc.bMinted)
 			usr2Arg := utils.User_tx(conf.RootPk3, conf.ValueCp, tc.b, conf.High_gas)
-			txs_2, revertTxHashes := cases.GenerateBNBTxs(&usr2Arg, bribeFee2, usr2Arg.Data, 1)
+			txs2, revertTxHashes := cases.GenerateBNBTxs(&usr2Arg, bribeFee2, usr2Arg.Data, 1)
 			blockNum, _ := usr1Arg.Client.BlockNumber(usr1Arg.Ctx)
 			t.Logf("Current Blk_num : %v .\n", blockNum)
 			MaxBN := blockNum + 1
-			bundleArgs2 := utils.AddBundle(txs, txs_2, revertTxHashes, MaxBN)
+			bundleArgs2 := utils.AddBundle(txs, txs2, revertTxHashes, MaxBN)
 
 			testcase.Args[0] = &usr1Arg
 			testcase.Args[1] = &usr2Arg
@@ -65,16 +67,16 @@ func Test_p0_value_preservation(t *testing.T) {
 
 			t.Log("[Step-4] Check tx Minted .\n")
 
-			response1 := utils.GetTransactionReceipt(*txs_1[0])
+			response1 := utils.GetTransactionReceipt(*txs1[0])
 			tx1Index := response1.Result.TransactionIndex
 
 			blk, _ := strconv.ParseInt(strings.TrimPrefix(response1.Result.BlockNumber, "0x"), 16, 64)
 			t.Logf("Tx1 in Blk : %v .\n", blk)
 			assert.Equal(t, blk, int64(MaxBN))
-			response2 := utils.GetTransactionReceipt(*txs_2[0])
+			response2 := utils.GetTransactionReceipt(*txs2[0])
 			tx2Index := response2.Result.TransactionIndex
 			if tc.aMinted {
-				assert.Equal(t, tx1Index, "0x0", "tx Index wrong", txs_1[0].Hash().Hex())
+				assert.Equal(t, tx1Index, "0x0", "tx Index wrong", txs1[0].Hash().Hex())
 			} else {
 				assert.Equal(t, tx1Index, "")
 			}
@@ -153,7 +155,7 @@ func Test_bribe(t *testing.T) {
 	t.Run("bribe_failed", func(t *testing.T) {
 		defer utils.ResetContract(t, conf.Mylock, testcase.ResetData)
 
-		t.Log("[Step-1] Root User Expose mempool transaction tx1\n")
+		t.Log("[Step-1] Root User Expose mem_pool transaction  tx1\n")
 		lock_data := utils.GeneEncodedData(testcase.LockABI, "lock", 1, true)
 		txs, _ := utils.SendLockMempool(conf.RootPk, conf.Mylock, lock_data, false)
 		// tx1 gaslimit 30w, gasprice 1Gwei,
@@ -216,7 +218,7 @@ func Test_p0_SpecialOp(t *testing.T) {
 		t.Log("send bundles testCoinbase \n")
 		arg := utils.User_tx(conf.RootPk, conf.SpecialOp, conf.SpecialOp_Cb, conf.High_gas)
 		arg.TxCount = 1
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&arg)
 		cbn := utils.SendBundlesMined(t, arg, bundleArgs)
 
 		utils.WaitMined(txs, cbn)
@@ -231,7 +233,7 @@ func Test_p0_SpecialOp(t *testing.T) {
 	// 	// 	blkTims := utils.GetLatestBlkMsg(t,conf.Spe_path, "testTimestamp", 5)
 	// 	// 	arg := utils.User_tx(conf.RootPk2, conf.SpecialOp, blkTims)
 	// 	// 	arg.TxCount = 1
-	// 	// 	txs, bundletestcase.Args, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+	// 	// 	txs, bundletestcase.Args, _ := cases.ValidBundle_NilPayBidTx_1( &arg)
 	// 	// 	cbn := utils.SendBundlesMined(t, arg, bundleArgs)
 
 	// 	// 	utils.WaitMined(txs, cbn)
@@ -246,7 +248,7 @@ func Test_p0_SpecialOp(t *testing.T) {
 
 		arg := utils.User_tx(conf.RootPk, conf.SpecialOp, blkTims, conf.High_gas)
 		arg.TxCount = 1
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&arg)
 		cbn := utils.SendBundlesMined(t, arg, bundleArgs)
 
 		utils.WaitMined(txs, cbn)
@@ -260,7 +262,7 @@ func Test_p0_SpecialOp(t *testing.T) {
 		blkHash := utils.GetLatestBlkMsg(t, conf.Spe_path, "testBlockHash", 0)
 		arg := utils.User_tx(conf.RootPk2, conf.SpecialOp, blkHash, conf.High_gas)
 		arg.TxCount = 1
-		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(t, &arg)
+		txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&arg)
 		cbn := utils.SendBundlesMined(t, arg, bundleArgs)
 
 		utils.WaitMined(txs, cbn)

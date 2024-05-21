@@ -15,7 +15,7 @@ func BenchmarkSendBundles(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		// 在每次迭代中调用接口
 		log.Println("run case")
-		txs, err := cases.ValidBundle_NilPayBidTx_2(&arg)
+		txs, err := cases.ValidBundle_NilPayBidTx_2(&arg, true)
 		if err != nil {
 			log.Println(" failed: ", err.Error())
 		} else {

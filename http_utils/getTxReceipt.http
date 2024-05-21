@@ -20,9 +20,9 @@ Content-Type: application/json
 {
   "id": 1,
   "jsonrpc": "2.0",
-  "method": "eth_getTransactionReceipt",
+  "method": "eth_getCode",
   "params": [
-    "0x1b079b1ae6d25dcb43810b3d489d8a009e4c98c0f7cb7e193ec65103271f2c37"
+    "0xE5454b639B241c07Fc0d55b23690F9CeE18b7E4f", "latest"
   ]
 }
 
