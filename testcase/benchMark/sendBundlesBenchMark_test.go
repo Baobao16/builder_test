@@ -1,7 +1,8 @@
 package benchMark
 
 import (
-	"github.com/xkwang/cases"
+	"github.com/xkwang/conf"
+	"github.com/xkwang/sendBundle"
 	"github.com/xkwang/utils"
 	"log"
 	"testing"
@@ -10,12 +11,12 @@ import (
 // 压力测试函数
 // 持续发送bundles
 func BenchmarkSendBundles(b *testing.B) {
-	arg := utils.Setup()
+	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferWBNB_code, conf.High_gas)
 	// 循环执行测试函数
 	for i := 0; i < b.N; i++ {
 		// 在每次迭代中调用接口
 		log.Println("run case")
-		txs, err := cases.ValidBundle_NilPayBidTx_2(&arg, true)
+		txs, err := sendBundle.ValidBundle_NilPayBidTx_2(&arg, true)
 		if err != nil {
 			log.Println(" failed: ", err.Error())
 		} else {

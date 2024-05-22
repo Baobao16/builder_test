@@ -1,4 +1,4 @@
-package cases
+package sendBundle
 
 import (
 	"encoding/json"
@@ -9,14 +9,13 @@ import (
 )
 
 func ValidBundle_NilPayBidTx_1(arg *BidCaseArg) (types.Transactions, *types.SendBundleArgs, error) {
-	txs, revertTxHashes := GenerateBNBTxs(arg, arg.SendAmount, arg.Data, arg.TxCount) // []common.Hash,
-	txBytes := make([]hexutil.Bytes, 0)
+	txs, revertTxHashes := GenerateBNBTxs(arg, arg.SendAmount, arg.Data, arg.TxCount)
+	txBytes := make([]hexutil.Bytes, 0, len(txs))
 	for _, tx := range txs {
-		// log.Println(tx.Nonce())
 		txByte, err := tx.MarshalBinary()
-		// fmt.Printf("txhash %v\n", tx.Hash().Hex())
 		if err != nil {
 			log.Println("tx.MarshalBinary", "err", err)
+			return nil, nil, err
 		}
 		txBytes = append(txBytes, txByte)
 	}
@@ -28,11 +27,11 @@ func ValidBundle_NilPayBidTx_1(arg *BidCaseArg) (types.Transactions, *types.Send
 		MinTimestamp:      arg.MinTS,
 		MaxTimestamp:      arg.MaxTS,
 	}
+
 	bidJson, _ := json.MarshalIndent(bundleArgs, "", "  ")
 	log.Println(string(bidJson))
 
 	return txs, bundleArgs, nil
-
 }
 
 func ValidBundle_NilPayBidTx_2(arg *BidCaseArg, sim bool) (types.Transactions, error) {

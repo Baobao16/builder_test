@@ -1,4 +1,4 @@
-package cases
+package sendBundle
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/xkwang/conf"
 	"log"
 	"math/big"
 )
@@ -109,13 +110,13 @@ type BidCaseArg struct {
 	SendAmount       *big.Int
 	RevertList       []int //会revert的交易，加入revertList
 	RevertListAdd    []int //会revert的交易，但不加入revertList
-	RevertListnormal []int //把正常交易加入revertList
+	RevertListNormal []int //把正常交易加入revertList
 	MaxBN            uint64
 	MinTS            *uint64
 	MaxTS            *uint64
 }
 
-func GenerateBNBTxs(arg *BidCaseArg, amountPerTx *big.Int, data []byte, txcount int) (types.Transactions, []common.Hash) {
+func GenerateBNBTxs(arg *BidCaseArg, amountPerTx *big.Int, data []byte, txCount int) (types.Transactions, []common.Hash) {
 	//bundleFactory := NewBidFactory(arg.Ctx, arg.Client, arg.RootPk, arg.BobPk, arg.Abc)
 	revertTxHashes := make([]common.Hash, 0)
 	rootAccount := NewAccount(arg.RootPk)
@@ -126,8 +127,8 @@ func GenerateBNBTxs(arg *BidCaseArg, amountPerTx *big.Int, data []byte, txcount 
 	}
 	revertTxs := make(map[int]string)
 
-	for _, v := range arg.RevertListnormal {
-		revertTxs[v] = "RevertListnormal"
+	for _, v := range arg.RevertListNormal {
+		revertTxs[v] = "RevertListNormal"
 	}
 	for _, v := range arg.RevertList {
 		revertTxs[v] = "RevertList"
@@ -137,12 +138,12 @@ func GenerateBNBTxs(arg *BidCaseArg, amountPerTx *big.Int, data []byte, txcount 
 	}
 
 	txs := make([]*types.Transaction, 0)
-	for i := 0; i < txcount; i++ {
+	for i := 0; i < txCount; i++ {
 		var (
 			bundle *types.Transaction
 			err    error
 		)
-		if revertTxs[i] == "RevertListnormal" {
+		if revertTxs[i] == "RevertListNormal" {
 			// 把正常交易加入revertlist中
 			bundle, err = rootAccount.TransferBNB(rootAccount.Nonce, arg.Contract, data, arg.ChainID, amountPerTx, arg.GasPrice, arg.GasLimit)
 			revertTxHashes = append(revertTxHashes, bundle.Hash())
@@ -150,13 +151,13 @@ func GenerateBNBTxs(arg *BidCaseArg, amountPerTx *big.Int, data []byte, txcount 
 
 		} else if revertTxs[i] == "RevertList" {
 			// RevertList 中的交易设置为会revert
-			bundle, err = rootAccount.TransferBNB(rootAccount.Nonce, WBNB, TotallysplWBNB_code, arg.ChainID, amountPerTx, arg.GasPrice, arg.GasLimit)
+			bundle, err = rootAccount.TransferBNB(rootAccount.Nonce, conf.Mylock, conf.TBalanceOfWBNB_code, arg.ChainID, amountPerTx, arg.GasPrice, arg.GasLimit)
 			// fmt.Printf("noList revert txhash %v\n", bundle.Hash().Hex())
 			revertTxHashes = append(revertTxHashes, bundle.Hash())
 
 		} else if revertTxs[i] == "RevertListAdd" {
 			// 发送会revert的交易，但不加入revertList
-			bundle, err = rootAccount.TransferBNB(rootAccount.Nonce, WBNB, TotallysplWBNB_code, arg.ChainID, amountPerTx, arg.GasPrice, arg.GasLimit)
+			bundle, err = rootAccount.TransferBNB(rootAccount.Nonce, conf.Mylock, TotallysplWBNB_code, arg.ChainID, amountPerTx, arg.GasPrice, arg.GasLimit)
 			// fmt.Printf("noList revert txhash %v\n", bundle.Hash().Hex())
 
 		} else {

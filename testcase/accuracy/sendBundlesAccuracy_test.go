@@ -1,33 +1,33 @@
 package accuracy
 
 import (
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/xkwang/conf"
 	"github.com/xkwang/testcase"
+	"github.com/xkwang/utils"
 	"log"
+	"math/big"
 	"testing"
 	"time"
-
-	"github.com/xkwang/cases"
-	"github.com/xkwang/conf"
-	"github.com/xkwang/utils"
 )
 
 func Test_reset(t *testing.T) {
-	utils.ResetContract(t, conf.Mylock, testcase.ResetData)
+	utils.ResetLockContract(t, conf.Mylock, testcase.ResetData)
 	// utils.SendLockMempool( conf.RootPk, conf.Mylock, lock_data, false)
 
 }
 
 // func Test_con(t *testing.T) {
-// 	// defer utils.ResetContract(t, conf.Mylock, reset_data)
+// 	// defer utils.ResetLockContract(t, conf.Mylock, reset_data)
 // 	// tx_0, _ := utils.SendLockMempool( conf.RootPk, conf.Mylock, lock_data, false)
 // 	// time.Sleep(6 * time.Second)
-// 	tx_01, _ := utils.SendLockMempool( conf.RootPk2, conf.Mylock, unlock_de_data, false)
+// 	tx01, _ := utils.SendLockMempool( conf.RootPk2, conf.Mylock, unlock_de_data, false)
 // 	// print(tx_0[0])
-// 	print(tx_01[0])
+// 	print(tx01[0])
 // 	time.Sleep(6 * time.Second)
-// 	rcp := utils.GetTransactionReceipt(*tx_01[0])
+// 	rcp := utils.GetTransactionReceipt(*tx01[0])
 // 	println("rcp.Result.GasUsed")
 // 	if rcp.Result.Status == "0x1" {
 // 		println(rcp.Result.GasUsed)
@@ -37,245 +37,165 @@ func Test_reset(t *testing.T) {
 
 // }
 
+// SendBundles sends the transaction bundles concurrently.
+
+// ExposeMempoolTransactions handles the mempool exposure for multiple transactions.
+func ExposeMempoolTransactions(pk1 string, data1 []byte, pk2 string, data2 []byte, gas *big.Int) (types.Transactions, []common.Hash) {
+	tx1, revertHash1 := utils.SendLockMempool(pk1, conf.Mylock, data1, gas, true)
+	tx2, revertHash2 := utils.SendLockMempool(pk2, conf.Mylock, data2, gas, true)
+	return append(tx1, tx2...), append(revertHash1, revertHash2...)
+}
+
 func Test_p0_back_run(t *testing.T) {
 	t.Run("back_run_tx1_success", func(t *testing.T) {
-		defer utils.ResetContract(t, conf.Mylock, testcase.ResetData)
+		defer utils.ResetLockContract(t, conf.Mylock, testcase.ResetData)
 
 		t.Log("[Step-1] Root User Expose mem-pool transaction tx1\n")
-		txs, _ := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockData, true)
+		txs, hs := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockData, conf.Low_gas, false)
 
 		t.Log("[Step-2] User 1 bundle [tx1, tx2], tx2 not allowed to revert.\n")
-		usr1Arg := utils.User_tx(conf.RootPk2, conf.Mylock, testcase.UnlockMoreData, conf.High_gas)
-		txs1, revertTxHashes := cases.GenerateBNBTxs(&usr1Arg, usr1Arg.SendAmount, usr1Arg.Data, 1)
-		bundleArgs1 := utils.AddBundle(txs, txs1, revertTxHashes, 0)
+		bundleArgs1, usr1Arg, tx1 := testcase.AddUserBundle(conf.RootPk2, conf.Mylock, testcase.UnlockMoreData, conf.SendA, conf.High_gas, txs, hs, 0)
 
 		t.Log("[Step-3] User 2 bundle [tx1, tx3], tx3 not allowed to revert.\n")
-		usr2Arg := utils.User_tx(conf.RootPk3, conf.Mylock, testcase.UnlockStrData, conf.Low_gas)
-		txs2, revertTxHashes := cases.GenerateBNBTxs(&usr2Arg, usr2Arg.SendAmount, usr2Arg.Data, 1)
-		bundleArgs2 := utils.AddBundle(txs, txs2, revertTxHashes, 0)
+		bundleArgs2, usr2Arg, tx2 := testcase.AddUserBundle(conf.RootPk3, conf.Mylock, testcase.UnlockStrData, conf.SendA, conf.Low_gas, txs, hs, 0)
 
-		testcase.Args[0] = &usr1Arg
-		testcase.Args[1] = &usr2Arg
-		testcase.BundleArgs_lsit[0] = bundleArgs1
-		testcase.BundleArgs_lsit[1] = bundleArgs2
+		testcase.Args[0] = usr1Arg
+		testcase.Args[1] = usr2Arg
+		testcase.BundleargsLsit[0] = bundleArgs1
+		testcase.BundleargsLsit[1] = bundleArgs2
 
-		t.Log("[Step-4] User 1 and User 2 send bundles .\n")
-		cbn := utils.ConcurSendBundles(t, testcase.Args, testcase.BundleArgs_lsit)
+		t.Log("[Step-4] User 1 and User 2 send bundles.\n")
+		cbn := testcase.SendBundles(t, usr1Arg, usr2Arg, bundleArgs1, bundleArgs2)
 
-		testcase.UsrList[0].Txs = txs
-		testcase.UsrList[0].Mined = true
-		testcase.UsrList[0].Rst = conf.Txsucceed
-		testcase.UsrList[1].Txs = txs1
-		testcase.UsrList[1].Mined = true
-		testcase.UsrList[1].Rst = conf.Txsucceed
-		testcase.UsrList[2].Txs = txs2
-		testcase.UsrList[2].Mined = false
-		testcase.UsrList[2].Rst = conf.Txfailed
+		testcase.UpdateUsrList(0, txs, true, conf.Txsucceed)
+		testcase.UpdateUsrList(1, tx1, true, conf.Txsucceed)
+		testcase.UpdateUsrList(2, tx2, false, conf.Txfailed)
 
-		t.Log("[Step-5] Transaction order check .\n")
-		utils.Verifytx(t, cbn, testcase.UsrList)
-		// Expect [tx1,tx2] 校验链上交易顺序与 bundle-1 交易顺序一致
-
+		t.Log("[Step-5] Transaction order check.\n")
+		utils.VerifyTx(t, cbn, testcase.UsrList)
+		// Expect [tx1, tx2] 校验链上交易顺序与 bundle-1 交易顺序一致
 	})
+
 	t.Run("back_run_tx1_failed", func(t *testing.T) {
-		defer utils.ResetContract(t, conf.Mylock, testcase.ResetData)
-		t.Log("[Step-1] Root User Expose mem_pool transaction  tx1\n")
-		txs, hs := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockFData, true)
+		defer utils.ResetLockContract(t, conf.Mylock, testcase.ResetData)
 
-		t.Log("[Step-2] User 1 bundle [tx1, tx2], none are allowed to revert.\n")
-		usr1_arg := utils.User_tx(conf.RootPk2, conf.Mylock, testcase.UnlockMoreData, conf.High_gas)
-		txs_1, r1 := cases.GenerateBNBTxs(&usr1_arg, usr1_arg.SendAmount, usr1_arg.Data, 1)
-		hs1 := append(r1, hs...)
-		bundleArgs1 := utils.AddBundle(txs, txs_1, hs1, 0)
+		t.Log("[Step-1] Root User Expose mem_pool transaction tx1")
+		txs, hs := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockFData, conf.Low_gas, true)
 
-		t.Log("[Step-3] User 2 bundle [tx1, tx3], none are allowed to revert.\n")
-		usr2_arg := utils.User_tx(conf.RootPk3, conf.Mylock, testcase.UnlockStrData, conf.Low_gas)
-		txs_2, r2 := cases.GenerateBNBTxs(&usr2_arg, usr2_arg.SendAmount, usr2_arg.Data, 1)
-		hs2 := append(r2, hs...)
-		bundleArgs2 := utils.AddBundle(txs, txs_2, hs2, 0)
+		t.Log("[Step-2] User 1 bundle [tx1, tx2], none are allowed to revert.")
+		bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk2, conf.Mylock, testcase.UnlockMoreData, conf.SendA, conf.High_gas, txs, hs, 0)
 
-		testcase.Args[0] = &usr1_arg
-		testcase.Args[1] = &usr2_arg
-		testcase.BundleArgs_lsit[0] = bundleArgs1
-		testcase.BundleArgs_lsit[1] = bundleArgs2
+		t.Log("[Step-3] User 2 bundle [tx1, tx3], none are allowed to revert.")
+		bundleArgs2, usr2Arg, txs2 := testcase.AddUserBundle(conf.RootPk3, conf.Mylock, testcase.UnlockStrData, conf.SendA, conf.Low_gas, txs, hs, 0)
 
-		t.Log("[Step-4] User 1 and User 2 send bundles .\n")
-		cbn := utils.ConcurSendBundles(t, testcase.Args, testcase.BundleArgs_lsit)
+		t.Log("[Step-4] User 1 and User 2 send bundles.")
+		cbn := testcase.SendBundles(t, usr1Arg, usr2Arg, bundleArgs1, bundleArgs2)
 
-		testcase.UsrList[0].Txs = txs
-		testcase.UsrList[0].Mined = true
-		testcase.UsrList[0].Rst = conf.Txfailed
-		testcase.UsrList[1].Txs = txs_1
-		testcase.UsrList[1].Mined = false
-		testcase.UsrList[1].Rst = conf.Txfailed
-		testcase.UsrList[2].Txs = txs_2
-		testcase.UsrList[2].Mined = false
-		testcase.UsrList[2].Rst = conf.Txfailed
-		t.Log("[Step-5] Verify transaction .\n")
-		utils.Verifytx(t, cbn, testcase.UsrList)
+		testcase.UpdateUsrList(0, txs, true, conf.Txfailed)
+		testcase.UpdateUsrList(1, txs1, false, conf.Txfailed)
+		testcase.UpdateUsrList(2, txs2, false, conf.Txfailed)
+
+		t.Log("[Step-5] Verify transactions.")
+		utils.VerifyTx(t, cbn, testcase.UsrList)
 	})
-
 }
 
 func Test_p0_token_sniper(t *testing.T) {
 	t.Run("tokenSniper_tx1_success", func(t *testing.T) {
-		defer utils.ResetContract(t, conf.Mylock, testcase.ResetData)
+		defer utils.ResetLockContract(t, conf.Mylock, testcase.ResetData)
 
-		t.Log("[Step-1] Root User Expose mem_pool transaction  tx1\n")
-		txs, revertHash := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockData, true)
+		t.Log("[Step-1] Root User Expose mem_pool transaction tx1")
+		txs, revertHash := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockData, conf.Low_gas, true)
 
-		t.Log("[Step-2] User 1 bundle [tx1, tx2], none are allowed to revert.\n")
-		usr1_arg := utils.User_tx(conf.RootPk2, conf.Mylock, testcase.FakelockMoreData, conf.High_gas)
-		txs_1, _ := cases.GenerateBNBTxs(&usr1_arg, usr1_arg.SendAmount, usr1_arg.Data, 1)
-		bundleArgs1 := utils.AddBundle(txs, txs_1, revertHash, 0)
+		t.Log("[Step-2] User 1 bundle [tx1, tx2], none are allowed to revert.")
+		bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk2, conf.Mylock, testcase.FakelockMoreData, conf.SendA, conf.High_gas, txs, revertHash, 0)
 
-		t.Log("[Step-3] User 2 bundle [tx1, tx3], none are allowed to revert.\n")
-		usr2_arg := utils.User_tx(conf.RootPk3, conf.Mylock, testcase.FakelockStrData, conf.Low_gas)
-		txs_2, _ := cases.GenerateBNBTxs(&usr2_arg, usr2_arg.SendAmount, usr2_arg.Data, 1)
-		bundleArgs2 := utils.AddBundle(txs, txs_2, revertHash, 0)
+		t.Log("[Step-3] User 2 bundle [tx1, tx3], none are allowed to revert.")
+		bundleArgs2, usr2Arg, txs2 := testcase.AddUserBundle(conf.RootPk3, conf.Mylock, testcase.FakelockStrData, conf.SendA, conf.Low_gas, txs, revertHash, 0)
 
-		t.Log("[Step-4] User 1 and User 2 send bundles .\n")
+		t.Log("[Step-4] User 1 and User 2 send bundles.")
+		cbn := testcase.SendBundles(t, usr1Arg, usr2Arg, bundleArgs1, bundleArgs2)
 
-		testcase.Args[0] = &usr1_arg
-		testcase.Args[1] = &usr2_arg
-		testcase.BundleArgs_lsit[0] = bundleArgs1
-		testcase.BundleArgs_lsit[1] = bundleArgs2
-		cbn := utils.ConcurSendBundles(t, testcase.Args, testcase.BundleArgs_lsit)
+		testcase.UpdateUsrList(0, txs, true, conf.Txsucceed)
+		testcase.UpdateUsrList(1, txs1, true, conf.Txsucceed)
+		testcase.UpdateUsrList(2, txs2, true, conf.Txsucceed)
 
-		testcase.UsrList[0].Txs = txs
-		testcase.UsrList[0].Mined = true
-		testcase.UsrList[0].Rst = conf.Txsucceed
-		testcase.UsrList[1].Txs = txs_1
-		testcase.UsrList[1].Mined = true
-		testcase.UsrList[1].Rst = conf.Txsucceed
-		testcase.UsrList[2].Txs = txs_2
-		testcase.UsrList[2].Mined = true
-		testcase.UsrList[2].Rst = conf.Txsucceed
+		t.Log("[Step-5] Verify transactions.")
+		utils.VerifyTx(t, cbn, testcase.UsrList)
 
-		t.Log("[Step-5] Verify transaction .\n")
-		utils.Verifytx(t, cbn, testcase.UsrList)
-
-		// 目标交易顺序 [tx1, tx2, tx3]
-		target_txl := append(txs, txs_1...)
-		target_txl = append(target_txl, txs_2...)
-		for _, tx := range target_txl {
+		// Log target transaction sequence
+		targetTxs := append(txs, txs1...)
+		targetTxs = append(targetTxs, txs2...)
+		for _, tx := range targetTxs {
 			log.Println(tx.Hash().Hex())
 		}
-
 	})
+
 	t.Run("tokenSniper_tx1_failed", func(t *testing.T) {
-		defer utils.ResetContract(t, conf.Mylock, testcase.ResetData)
+		defer utils.ResetLockContract(t, conf.Mylock, testcase.ResetData)
 
-		t.Log("[Step-1] Root User Expose mem_pool transaction  tx1\n")
-		txs, revertHash := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockFData, true) //conf.Lock56_lock0t "gasUsed":"0x342b" 13355
+		t.Log("[Step-1] Root User Expose mem_pool transaction tx1")
+		txs, revertHash := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockFData, conf.Low_gas, true)
 
-		t.Log("[Step-2] User 1 bundle [tx1, tx2], none are allowed to revert.\n")
-		usr1_arg := utils.User_tx(conf.RootPk2, conf.Mylock, testcase.FakelockMoreData, conf.High_gas) // unlock_long
-		txs_1, _ := cases.GenerateBNBTxs(&usr1_arg, usr1_arg.SendAmount, usr1_arg.Data, 1)
-		bundleArgs1 := utils.AddBundle(txs, txs_1, revertHash, 0)
+		t.Log("[Step-2] User 1 bundle [tx1, tx2], none are allowed to revert.")
+		bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk2, conf.Mylock, testcase.FakelockMoreData, conf.SendA, conf.High_gas, txs, revertHash, 0)
 
-		t.Log("[Step-3] User 2 bundle [tx1, tx3], none are allowed to revert.\n")
-		usr2_arg := utils.User_tx(conf.RootPk3, conf.Mylock, testcase.FakelockStrData, conf.Low_gas) // unlock_str
-		txs_2, _ := cases.GenerateBNBTxs(&usr2_arg, usr2_arg.SendAmount, usr2_arg.Data, 1)
-		bundleArgs2 := utils.AddBundle(txs, txs_2, revertHash, 0)
+		t.Log("[Step-3] User 2 bundle [tx1, tx3], none are allowed to revert.")
+		bundleArgs2, usr2Arg, txs2 := testcase.AddUserBundle(conf.RootPk3, conf.Mylock, testcase.FakelockStrData, conf.SendA, conf.Low_gas, txs, revertHash, 0)
 
-		t.Log("[Step-4] User 1 and User 2 send bundles .\n")
+		t.Log("[Step-4] User 1 and User 2 send bundles.")
+		cbn := testcase.SendBundles(t, usr1Arg, usr2Arg, bundleArgs1, bundleArgs2)
 
-		testcase.Args[0] = &usr1_arg
-		testcase.Args[1] = &usr2_arg
-		testcase.BundleArgs_lsit[0] = bundleArgs1
-		testcase.BundleArgs_lsit[1] = bundleArgs2
-		cbn := utils.ConcurSendBundles(t, testcase.Args, testcase.BundleArgs_lsit)
+		testcase.UpdateUsrList(0, txs, true, conf.Txfailed)
+		testcase.UpdateUsrList(1, txs1, false, conf.Txfailed)
+		testcase.UpdateUsrList(2, txs2, false, conf.Txfailed)
 
-		testcase.UsrList[0].Txs = txs
-		testcase.UsrList[0].Mined = true
-		testcase.UsrList[0].Rst = conf.Txfailed
-		testcase.UsrList[1].Txs = txs_1
-		testcase.UsrList[1].Mined = false
-		testcase.UsrList[1].Rst = conf.Txfailed
-		testcase.UsrList[2].Txs = txs_2
-		testcase.UsrList[2].Mined = false
-		testcase.UsrList[2].Rst = conf.Txfailed
-
-		t.Log("[Step-5] Verify transaction .\n")
-		utils.Verifytx(t, cbn, testcase.UsrList)
-
+		t.Log("[Step-5] Verify transactions.")
+		utils.VerifyTx(t, cbn, testcase.UsrList)
 	})
-
 }
 
 func Test_p0_running_attack(t *testing.T) {
 	t.Run("runningAttack_tx1_success", func(t *testing.T) {
-		defer utils.ResetContract(t, conf.Mylock, testcase.ResetData)
+		defer utils.ResetLockContract(t, conf.Mylock, testcase.ResetData)
 
-		t.Log("[Step-1] Root User Expose mem_pool transaction  tx0  tx1 \n") // 会上链
-
-		tx_0, rh := utils.SendLockMempool(conf.RootPk4, conf.WBNB, conf.TransferWBNB_code, true)
-		tx_01, revertHash := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockData, true)
-		tx_02 := append(tx_01, tx_0...)
+		t.Log("[Step-1] Root User Expose mem_pool transaction tx0 tx1")
+		tx0, rh := utils.SendLockMempool(conf.RootPk4, conf.WBNB, conf.TransferWBNB_code, conf.Low_gas, true)
+		tx01, revertHash := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockData, conf.Low_gas, true)
+		tx02 := append(tx01, tx0...)
 		revertHash = append(revertHash, rh[0])
 
-		t.Log("[Step-2] User 1 bundle [tx0, tx1, tx2], tx2 not allowed to revert.\n")              // 不会上链
-		usr1_arg := utils.User_tx(conf.RootPk2, conf.Mylock, testcase.UnlockStrData, conf.Low_gas) //   [tx2] "gasUsed":"0xdd65"
-		txs_1, _ := cases.GenerateBNBTxs(&usr1_arg, usr1_arg.SendAmount, usr1_arg.Data, 1)
-		bundleArgs1 := utils.AddBundle(tx_02, txs_1, revertHash, 0)
+		t.Log("[Step-2] User 1 bundle [tx0, tx1, tx2], tx2 not allowed to revert.")
+		bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk2, conf.Mylock, testcase.UnlockStrData, conf.SendA, conf.Low_gas, tx02, revertHash, 0)
 
-		t.Log("[Step-3] User 2 bundle [tx1, tx3], tx3 not allowed to revert.\n")                    // 会上链
-		usr2_arg := utils.User_tx(conf.RootPk3, conf.Mylock, testcase.UnlockMoreData, conf.Med_gas) //  [tx3] "gasUsed":"0xe751"
-		txs_2, _ := cases.GenerateBNBTxs(&usr2_arg, usr2_arg.SendAmount, usr2_arg.Data, 1)
-		bundleArgs2 := utils.AddBundle(tx_01, txs_2, revertHash, 0)
+		t.Log("[Step-3] User 2 bundle [tx1, tx3], tx3 not allowed to revert.")
+		bundleArgs2, usr2Arg, txs2 := testcase.AddUserBundle(conf.RootPk3, conf.Mylock, testcase.UnlockMoreData, conf.SendA, conf.Low_gas, tx01, revertHash, 0)
 
-		t.Log("[Step-4] User 1 and User 2 send bundles .\n")
+		t.Log("[Step-4] User 1 and User 2 send bundles.")
+		cbn := testcase.SendBundles(t, usr1Arg, usr2Arg, bundleArgs1, bundleArgs2)
 
-		testcase.Args[0] = &usr1_arg
-		testcase.Args[1] = &usr2_arg
-		testcase.BundleArgs_lsit[0] = bundleArgs1
-		testcase.BundleArgs_lsit[1] = bundleArgs2
-		cbn := utils.ConcurSendBundles(t, testcase.Args, testcase.BundleArgs_lsit)
-		// 在tx1成功执行的前提下，链上交易为[tx0,tx1,tx3]
-		t.Log("[Step-5] check tx0 tx1 mined .\n")
-		testcase.UsrList[0].Txs = tx_02
-		testcase.UsrList[0].Mined = true
-		testcase.UsrList[0].Rst = conf.Txsucceed
-		testcase.UsrList[1].Txs = txs_1
-		testcase.UsrList[1].Mined = false
-		testcase.UsrList[1].Rst = conf.Txfailed
-		testcase.UsrList[2].Txs = txs_2
-		testcase.UsrList[2].Mined = true
-		testcase.UsrList[2].Rst = conf.Txsucceed
-		utils.Verifytx(t, cbn, testcase.UsrList)
-
-		// 目标交易顺序 [ tx1, tx0, tx3]
-		// target_txl := append(tx_02, txs_2...)
-		// for _, tx := range target_txl {
-		// 	log.Println(tx.Hash().Hex())
-		// }
-
+		testcase.UpdateUsrList(0, tx02, true, conf.Txsucceed)
+		testcase.UpdateUsrList(1, txs1, false, conf.Txfailed)
+		testcase.UpdateUsrList(2, txs2, true, conf.Txsucceed)
+		utils.VerifyTx(t, cbn, testcase.UsrList)
 	})
+
 	t.Run("runningAttack_tx1_failed", func(t *testing.T) {
-		defer utils.ResetContract(t, conf.Mylock, testcase.ResetData)
+		defer utils.ResetLockContract(t, conf.Mylock, testcase.ResetData)
 
-		t.Log("[Step-1] Root User Expose mem_pool transaction  tx0  tx1 \n")                     // 会上链
-		tx_0, _ := utils.SendLockMempool(conf.RootPk4, conf.WBNB, conf.TransferWBNB_code, false) // [tx0]"gasUsed": "0x6323" :25379
-		tx_01, _ := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockFData, false)   // [tx1]conf.Lock56_lock0t "gasUsed":"0x342b" 13355
-		tx_02 := append(tx_01, tx_0...)
+		t.Log("[Step-1] Root User Expose mem_pool transaction tx0 tx1")
+		tx0, _ := utils.SendLockMempool(conf.RootPk4, conf.WBNB, conf.TransferWBNB_code, conf.Low_gas, false)
+		tx01, _ := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockFData, conf.Low_gas, false)
+		tx02 := append(tx01, tx0...)
 
-		t.Log("[Step-2] User 1 bundle [tx0, tx1, tx2], tx2 not allowed to revert.\n")              // 不会上链
-		usr1_arg := utils.User_tx(conf.RootPk2, conf.Mylock, testcase.UnlockStrData, conf.Low_gas) // [tx2] unlock_str  "gasUsed":"0xbfd8" 49112
-		txs_1, revertTxHashes := cases.GenerateBNBTxs(&usr1_arg, usr1_arg.SendAmount, usr1_arg.Data, 1)
-		bundleArgs1 := utils.AddBundle(tx_02, txs_1, revertTxHashes, 0)
+		t.Log("[Step-2] User 1 bundle [tx0, tx1, tx2], tx2 not allowed to revert.")
+		bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk2, conf.Mylock, testcase.UnlockStrData, conf.SendA, conf.Low_gas, tx02, nil, 0)
 
-		t.Log("[Step-3] User 2 bundle [tx1, tx3], tx3 not allowed to revert.\n")                     // 会上链
-		usr2_arg := utils.User_tx(conf.RootPk3, conf.Mylock, testcase.UnlockMoreData, conf.High_gas) // [tx3] unlock_long "gasUsed":"0xc944" 51524
-		txs_2, revertTxHashes := cases.GenerateBNBTxs(&usr2_arg, usr2_arg.SendAmount, usr2_arg.Data, 1)
-		bundleArgs2 := utils.AddBundle(tx_01, txs_2, revertTxHashes, 0)
+		t.Log("[Step-3] User 2 bundle [tx1, tx3], tx3 not allowed to revert.")
+		bundleArgs2, usr2Arg, txs2 := testcase.AddUserBundle(conf.RootPk3, conf.Mylock, testcase.UnlockMoreData, conf.SendA, conf.High_gas, tx01, nil, 0)
 
-		t.Log("[Step-4] User 1 and User 2 send bundles .\n")
-		testcase.Args[0] = &usr1_arg
-		testcase.Args[1] = &usr2_arg
-		testcase.BundleArgs_lsit[0] = bundleArgs1
-		testcase.BundleArgs_lsit[1] = bundleArgs2
-		utils.ConcurSendBundles(t, testcase.Args, testcase.BundleArgs_lsit)
+		t.Log("[Step-4] User 1 and User 2 send bundles.")
+		testcase.SendBundles(t, usr1Arg, usr2Arg, bundleArgs1, bundleArgs2)
 
 		t.Log("[Step-5] Verify transaction .\n")
 		// for _, tx := range tx_02 {
@@ -284,222 +204,163 @@ func Test_p0_running_attack(t *testing.T) {
 		// tx0 success
 		// tx1 failed
 
-		for _, tx := range txs_1 {
+		for _, tx := range txs1 {
 			// 依次检查bundle中的交易是否成功上链
 			log.Println("bundle 1 not mined")
 			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
 		}
 
-		for _, tx := range txs_2 {
+		for _, tx := range txs2 {
 			log.Println("bundle 2 mined")
 			// 依次检查bundle中的交易是否成功上链
 			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
 		}
 
 	})
-
 }
 
-func Test_p0_gaslimit_deception(t *testing.T) {
-	t.Run("gaslimitDeception_tx1_success", func(t *testing.T) {
-		defer utils.ResetContract(t, conf.Mylock, testcase.ResetData)
+func Test_p0_gasLimit_deception(t *testing.T) {
+	t.Run("gasLimitDeception_tx1_success", func(t *testing.T) {
+		defer utils.ResetLockContract(t, conf.Mylock, testcase.ResetData)
 
-		t.Log("[Step-1] Root User Expose mem_pool transaction  tx1\n")
-		txs, _ := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockData, false) //[tx1]conf.Lock56_lock0t "gasUsed":"0x342b" 13355
+		t.Log("[Step-1] Root User Expose mem_pool transaction tx1")
+		txs, _ := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockData, conf.Low_gas, false)
 
-		t.Log("[Step-2] User 1 bundle [tx1, tx2], tx2 not allowed to revert.\n")
-		usr1_arg := utils.User_tx(conf.RootPk2, conf.Mylock, testcase.UnlockDeData, conf.Med_gas) // [tx2] unlock_long "gasUsed":"0xc944" 51524
-		// tx2 会上链
-		// gasfee(gasused * gasprice) 20w * 1e10
-		// GasLimit * gasprice        20w * 1e10
-		txs_1, revertTxHashes := cases.GenerateBNBTxs(&usr1_arg, usr1_arg.SendAmount, usr1_arg.Data, 1)
-		bundleArgs1 := utils.AddBundle(txs, txs_1, revertTxHashes, 0)
+		t.Log("[Step-2] User 1 bundle [tx1, tx2], tx2 not allowed to revert.")
+		bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk2, conf.Mylock, testcase.UnlockDeData, conf.SendA, conf.Low_gas, txs, nil, 0)
 
-		t.Log("[Step-3] User 2 bundle [tx1, tx3], tx3 not allowed to revert.\n")
-		usr2_arg := utils.User_tx(conf.RootPk3, conf.Mylock, testcase.UnlockDesData, conf.High_gas) // [tx3] unlock_str  "gasUsed":"0xe8b1"
-		// tx3 不会上链
-		// gasfee(gasused * gasprice) 3.5w * 1e10
-		// GasLimit * gasprice        30w  * 1e10
-		txs_2, revertTxHashes := cases.GenerateBNBTxs(&usr2_arg, usr2_arg.SendAmount, usr2_arg.Data, 1)
-		bundleArgs2 := utils.AddBundle(txs, txs_2, revertTxHashes, 0)
+		t.Log("[Step-3] User 2 bundle [tx1, tx3], tx3 not allowed to revert.")
+		bundleArgs2, usr2Arg, txs2 := testcase.AddUserBundle(conf.RootPk3, conf.Mylock, testcase.UnlockDesData, conf.SendA, conf.High_gas, txs, nil, 0)
 
-		t.Log("[Step-4] User 1 and User 2 send bundles .\n")
+		t.Log("[Step-4] User 1 and User 2 send bundles.")
+		cbn := testcase.SendBundles(t, usr1Arg, usr2Arg, bundleArgs1, bundleArgs2)
 
-		testcase.Args[0] = &usr1_arg
-		testcase.Args[1] = &usr2_arg
-		testcase.BundleArgs_lsit[0] = bundleArgs1
-		testcase.BundleArgs_lsit[1] = bundleArgs2
-		cbn := utils.ConcurSendBundles(t, testcase.Args, testcase.BundleArgs_lsit)
-
-		t.Log("[Step-5] Verify transaction .\n")
-		testcase.UsrList[0].Txs = txs
-		testcase.UsrList[0].Mined = true
-		testcase.UsrList[0].Rst = conf.Txsucceed
-		testcase.UsrList[1].Txs = txs_1
-		testcase.UsrList[1].Mined = true
-		testcase.UsrList[1].Rst = conf.Txsucceed
-		testcase.UsrList[2].Txs = txs_2
-		testcase.UsrList[2].Mined = false
-		testcase.UsrList[2].Rst = conf.Txfailed
-		utils.Verifytx(t, cbn, testcase.UsrList)
-
-		// t.Log("[Step-5] Transaction order check .\n")
-		// Expect [tx1,tx2] 校验链上交易顺序与 bundle-1 交易顺序一致
-
-	})
-	t.Run("gaslimitDeception_tx1_failed", func(t *testing.T) {
-		defer utils.ResetContract(t, conf.Mylock, testcase.ResetData)
-
-		t.Log("[Step-1] Root User Expose mem_pool transaction  tx1\n")
-		txs, revertHash := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockFData, true) //conf.Lock56_lock0t "gasUsed":"0x342b" 13355
-
-		t.Log("[Step-2] User 1 bundle [tx1, tx2], tx2 not allowed to revert.\n")
-		usr1_arg := utils.User_tx(conf.RootPk2, conf.Mylock, testcase.UnlockDeData, conf.Med_gas) // [tx2] unlock_long "gasUsed":"0xc944" 51524
-		// tx2 会上链
-		// gasfee(gasused * gasprice) 20w * 1e10
-		// GasLimit * gasprice        20w * 1e10
-		txs_1, _ := cases.GenerateBNBTxs(&usr1_arg, usr1_arg.SendAmount, usr1_arg.Data, 1)
-		bundleArgs1 := utils.AddBundle(txs, txs_1, revertHash, 0)
-
-		t.Log("[Step-3] User 2 bundle [tx1, tx3], tx3 not allowed to revert.\n")
-		usr2_arg := utils.User_tx(conf.RootPk3, conf.Mylock, testcase.UnlockDesData, conf.High_gas) // [tx3] unlock_str  "gasUsed":"0xe8b1"
-		// tx3 不会上链
-		// gasfee(gasused * gasprice) 3.5w * 1e10
-		// GasLimit * gasprice        30w  * 1e10
-		txs_2, _ := cases.GenerateBNBTxs(&usr2_arg, usr2_arg.SendAmount, usr2_arg.Data, 1)
-		bundleArgs2 := utils.AddBundle(txs, txs_2, revertHash, 0)
-
-		t.Log("[Step-4] User 1 and User 2 send bundles .\n")
-
-		testcase.Args[0] = &usr1_arg
-		testcase.Args[1] = &usr2_arg
-		testcase.BundleArgs_lsit[0] = bundleArgs1
-		testcase.BundleArgs_lsit[1] = bundleArgs2
-		cbn := utils.ConcurSendBundles(t, testcase.Args, testcase.BundleArgs_lsit)
-
-		t.Log("[Step-5] Verify transaction .\n")
-		testcase.UsrList[0].Txs = txs
-		testcase.UsrList[0].Mined = true
-		testcase.UsrList[0].Rst = conf.Txfailed
-		testcase.UsrList[1].Txs = txs_1
-		testcase.UsrList[1].Mined = false
-		testcase.UsrList[1].Rst = conf.Txfailed
-		testcase.UsrList[2].Txs = txs_2
-		testcase.UsrList[2].Mined = false
-		testcase.UsrList[2].Rst = conf.Txfailed
-		utils.Verifytx(t, cbn, testcase.UsrList)
-
+		t.Log("[Step-5] Verify transactions.")
+		testcase.UpdateUsrList(0, txs, true, conf.Txsucceed)
+		testcase.UpdateUsrList(1, txs1, true, conf.Txsucceed)
+		testcase.UpdateUsrList(2, txs2, false, conf.Txfailed)
+		utils.VerifyTx(t, cbn, testcase.UsrList)
 	})
 
+	t.Run("gasLimitDeception_tx1_failed", func(t *testing.T) {
+		defer utils.ResetLockContract(t, conf.Mylock, testcase.ResetData)
+
+		t.Log("[Step-1] Root User Expose mem_pool transaction tx1")
+		txs, revertHash := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockFData, conf.Low_gas, true)
+
+		t.Log("[Step-2] User 1 bundle [tx1, tx2], tx2 not allowed to revert.")
+		bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk2, conf.Mylock, testcase.UnlockDeData, conf.SendA, conf.Low_gas, txs, revertHash, 0)
+
+		t.Log("[Step-3] User 2 bundle [tx1, tx3], tx3 not allowed to revert.")
+		bundleArgs2, usr2Arg, txs2 := testcase.AddUserBundle(conf.RootPk3, conf.Mylock, testcase.UnlockDesData, conf.SendA, conf.High_gas, txs, revertHash, 0)
+
+		t.Log("[Step-4] User 1 and User 2 send bundles.")
+		cbn := testcase.SendBundles(t, usr1Arg, usr2Arg, bundleArgs1, bundleArgs2)
+
+		t.Log("[Step-5] Verify transactions.")
+		testcase.UpdateUsrList(0, txs, true, conf.Txfailed)
+		testcase.UpdateUsrList(1, txs1, false, conf.Txfailed)
+		testcase.UpdateUsrList(2, txs2, false, conf.Txfailed)
+		utils.VerifyTx(t, cbn, testcase.UsrList)
+	})
 }
 
 func Test_p0_sandwich(t *testing.T) {
 
 	t.Run("sandwich_ol1", func(t *testing.T) {
-		defer utils.ResetContract(t, conf.Mylock, testcase.ResetData)
+		defer utils.ResetLockContract(t, conf.Mylock, testcase.ResetData)
 
-		t.Log("[Step-1] Root User Expose mem_pool transaction  tx0  tx1 \n")
-		tx_0, revertHash_0 := utils.SendLockMempool(conf.RootPk2, conf.Mylock, testcase.LockData, true)
-		tx_1, revertHash_1 := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.FakelockStrData, true)
+		t.Log("[Step-1] Root User Expose mem_pool transaction tx0 tx1")
+		tx01, revertHash := ExposeMempoolTransactions(conf.RootPk2, testcase.LockData, conf.RootPk, testcase.FakelockStrData, conf.Low_gas)
 
-		tx_01 := append(tx_0, tx_1...)
-		revertHash := append(revertHash_0, revertHash_1...)
+		t.Log("[Step-2] User 1 bundle [tx0, tx1, tx2], tx2 not allowed to revert.")
+		bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk2, conf.Mylock, testcase.UnlockMoreData, conf.SendA, conf.High_gas, tx01, revertHash, 0)
 
-		t.Log("[Step-2] User 1 bundle [tx0, tx1, tx2], tx2 not allowed to revert.\n")
-		usr1_arg := utils.User_tx(conf.RootPk2, conf.Mylock, testcase.UnlockMoreData, conf.High_gas)
-		txs_1, _ := cases.GenerateBNBTxs(&usr1_arg, usr1_arg.SendAmount, usr1_arg.Data, 1)
-		bundleArgs1 := utils.AddBundle(tx_01, txs_1, revertHash, 0)
+		t.Log("[Step-3] User 2 bundle [tx1, tx3], tx3 not allowed to revert.")
+		bundleArgs2, usr2Arg, txs2 := testcase.AddUserBundle(conf.RootPk3, conf.Mylock, testcase.UnlockStrData, conf.SendA, conf.Low_gas, tx01[1:], revertHash[1:], 0)
 
-		t.Log("[Step-3] User 2 bundle [tx1, tx3], tx3 not allowed to revert.\n")
-		usr2_arg := utils.User_tx(conf.RootPk3, conf.Mylock, testcase.UnlockStrData, conf.Low_gas)
-		txs_2, _ := cases.GenerateBNBTxs(&usr2_arg, usr2_arg.SendAmount, usr2_arg.Data, 1)
-		bundleArgs2 := utils.AddBundle(tx_1, txs_2, revertHash_1, 0)
+		t.Log("[Step-4] User 1 and User 2 send bundles. Expect mined Tx_list: [tx0, tx1, tx2]")
+		cbn := testcase.SendBundles(t, usr1Arg, usr2Arg, bundleArgs1, bundleArgs2)
 
-		t.Log("[Step-4] User 1 and User 2 send bundles . Expect :mined Tx_list : [tx0, tx1, tx2]\n")
-
-		testcase.Args[0] = &usr1_arg
-		testcase.Args[1] = &usr2_arg
-		testcase.BundleArgs_lsit[0] = bundleArgs1
-		testcase.BundleArgs_lsit[1] = bundleArgs2
-		cbn := utils.ConcurSendBundles(t, testcase.Args, testcase.BundleArgs_lsit)
-
-		// 在tx1成功执行的前提下，链上交易为[tx0,tx1,tx2]
-		t.Log("[Step-5] check tx0 tx1 mined .\n")
-		testcase.UsrList[0].Txs = tx_01
-		testcase.UsrList[0].Mined = true
-		testcase.UsrList[0].Rst = conf.Txsucceed
-		testcase.UsrList[1].Txs = txs_1
-		testcase.UsrList[1].Mined = true
-		testcase.UsrList[1].Rst = conf.Txsucceed
-		testcase.UsrList[2].Txs = txs_2
-		testcase.UsrList[2].Mined = false
-		testcase.UsrList[2].Rst = conf.Txfailed
-		utils.Verifytx(t, cbn, testcase.UsrList)
-		// tx0,tx1,tx2,tx3
+		t.Log("[Step-5] Check tx0, tx1, and tx2 mined.")
+		testcase.UpdateUsrList(0, tx01, true, conf.Txsucceed)
+		testcase.UpdateUsrList(1, txs1, true, conf.Txsucceed)
+		testcase.UpdateUsrList(2, txs2, false, conf.Txfailed)
+		utils.VerifyTx(t, cbn, testcase.UsrList)
 	})
 
 	t.Run("sandwich_both", func(t *testing.T) {
-		defer utils.ResetContract(t, conf.Mylock, testcase.ResetData)
+		defer utils.ResetLockContract(t, conf.Mylock, testcase.ResetData)
 
-		t.Log("[Step-1] Root User Expose mem_pool transaction  tx0  tx1 \n")
-		tx_0, revertHash_0 := utils.SendLockMempool(conf.RootPk2, conf.Mylock, testcase.LockData, false)
-		tx_1, revertHash_1 := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.UnlockStrData, true)
+		t.Log("[Step-1] Root User Expose mem_pool transaction tx0 tx1")
+		tx01, revertHash := ExposeMempoolTransactions(conf.RootPk2, testcase.LockData, conf.RootPk, testcase.UnlockStrData, conf.Low_gas)
 
-		tx_01 := append(tx_0, tx_1...)
-		revertHash := append(revertHash_0, revertHash_1...)
+		t.Log("[Step-2] User 1 bundle [tx0, tx1, tx2], all not allowed to revert.")
+		bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk2, conf.Mylock, testcase.ResetData, conf.SendA, conf.High_gas, tx01, revertHash, 0)
 
-		t.Log("[Step-2] User 1 bundle [tx0, tx1, tx2], all not allowed to revert.\n")
-		usr1_arg := utils.User_tx(conf.RootPk2, conf.Mylock, testcase.ResetData, conf.High_gas)
-		txs_1, _ := cases.GenerateBNBTxs(&usr1_arg, usr1_arg.SendAmount, usr1_arg.Data, 1)
-		bundleArgs1 := utils.AddBundle(tx_01, txs_1, revertHash, 0)
+		t.Log("[Step-3] User 2 bundle [tx1, tx3], tx1 not allowed to revert.")
+		bundleArgs2, usr2Arg, txs2 := testcase.AddUserBundle(conf.RootPk3, conf.Mylock, testcase.ResetData, conf.SendA, conf.Low_gas, tx01[1:], revertHash[1:], 0)
 
-		t.Log("[Step-3] User 2 bundle [tx1, tx3],      tx1 not allowed to revert.\n")
-		usr2_arg := utils.User_tx(conf.RootPk3, conf.Mylock, testcase.ResetData, conf.Low_gas)
-		txs_2, _ := cases.GenerateBNBTxs(&usr2_arg, usr2_arg.SendAmount, usr2_arg.Data, 1)
-		bundleArgs2 := utils.AddBundle(tx_1, txs_2, revertHash_1, 0)
+		t.Log("[Step-4] User 1 and User 2 send bundles. Expect mined Tx_list: [tx0, tx1, tx2, tx3]")
+		cbn := testcase.SendBundles(t, usr1Arg, usr2Arg, bundleArgs1, bundleArgs2)
 
-		t.Log("[Step-4] User 1 and User 2 send bundles . Expect :mined Tx_list : [tx0, tx1, tx2, tx3]\n")
-
-		testcase.Args[0] = &usr1_arg
-		testcase.Args[1] = &usr2_arg
-		testcase.BundleArgs_lsit[0] = bundleArgs1
-		testcase.BundleArgs_lsit[1] = bundleArgs2
-		cbn := utils.ConcurSendBundles(t, testcase.Args, testcase.BundleArgs_lsit)
-
-		// 在tx1成功执行的前提下，链上交易为[tx0,tx1,tx2]
-		t.Log("[Step-5] check tx0, tx1, tx2, tx3 mined .\n")
-		testcase.UsrList[0].Txs = tx_01
-		testcase.UsrList[0].Mined = true
-		testcase.UsrList[0].Rst = conf.Txsucceed
-		testcase.UsrList[1].Txs = txs_1
-		testcase.UsrList[1].Mined = true
-		testcase.UsrList[1].Rst = conf.Txsucceed
-		testcase.UsrList[2].Txs = txs_2
-		testcase.UsrList[2].Mined = true
-		testcase.UsrList[2].Rst = conf.Txsucceed
-		utils.Verifytx(t, cbn, testcase.UsrList)
-		// tx0,tx1,tx2,tx3
+		t.Log("[Step-5] Check tx0, tx1, tx2, and tx3 mined.")
+		testcase.UpdateUsrList(0, tx01, true, conf.Txsucceed)
+		testcase.UpdateUsrList(1, txs1, true, conf.Txsucceed)
+		testcase.UpdateUsrList(2, txs2, true, conf.Txsucceed)
+		utils.VerifyTx(t, cbn, testcase.UsrList)
 	})
-
 }
 
 func Test_p1_conflict_mb(t *testing.T) {
 	t.Run("only mem_pool tx in bundle", func(t *testing.T) {
-		defer utils.ResetContract(t, conf.Mylock, testcase.ResetData)
+		defer utils.ResetLockContract(t, conf.Mylock, testcase.ResetData)
 
-		t.Log("[Step-1] Root User Expose mem_pool transaction  tx0 \n")
-		tx0, revertHash := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockData, false)
-		t.Log("[Step-2] User 1 bundle [tx0], tx2 not allowed to revert.\n")
-		usr1Arg := utils.User_tx(conf.RootPk2, conf.Mylock, testcase.UnlockMoreData, conf.High_gas)
-		var txs types.Transactions
-		bundleArgs1 := utils.AddBundle(tx0, txs, revertHash, 0)
-		err := usr1Arg.BuilderClient.SendBundle(usr1Arg.Ctx, bundleArgs1)
+		t.Log("[Step-1] Root User Expose mem_pool transaction tx0")
+		tx0, revertHash := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockData, conf.Low_gas, false)
+
+		t.Log("[Step-2] User 1 bundle [tx0], tx2 not allowed to revert.")
+		bundleArgs, usrArg, _ := testcase.AddUserBundle(conf.RootPk2, conf.Mylock, testcase.ResetData, conf.SendA, conf.High_gas, tx0, revertHash, 0)
+		err := usrArg.BuilderClient.SendBundle(usrArg.Ctx, bundleArgs)
 		if err != nil {
-			log.Println(" failed: ", err.Error())
+			log.Println("failed: ", err.Error())
 		}
 		time.Sleep(6 * time.Second)
-		response1 := utils.GetTransactionReceipt(*tx0[0])
-		assert.Equal(t, response1.Result.Status, conf.Txsucceed)
+		t.Log("[Step-3] Verify the transaction.")
+		response := utils.GetTransactionReceipt(*tx0[0])
+		assert.Equal(t, response.Result.Status, conf.Txsucceed)
 	})
+	//t.Run("mem_pool txs in bundle  order check", func(t *testing.T) {
+	//	// 生效需要注释掉SendLockMempool 的send
+	//	defer utils.ResetLockContract(t, conf.Mylock, testcase.ResetData)
+	//	//t.Log("[Step-1] Root User2 Expose mem_pool transaction  tx0 \n")
+	//	//tx0, _ := utils.SendLockMempool(conf.RootPk2, conf.Mylock, testcase.LockData,conf.SendA, conf.Low_gas, false)
+	//	//time.Sleep(6 * time.Second)
+	//	//response1 := utils.GetTransactionReceipt(*tx0[0])
+	//	//assert.Equal(t, response1.Result.Status, conf.Txsucceed)
+	//
+	//	t.Log("[Step-2] Root User1 Expose mem_pool transaction  tx1 \n")
+	//	tx1, revertHash := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockData,conf.SendA, conf.High_gas, false)
+	//
+	//	t.Log("[Step-2] Root User2 Expose mem_pool transaction  tx2 \n")
+	//	tx2, _ := utils.SendLockMempool(conf.RootPk2, conf.Mylock, testcase.LockData,conf.SendA, conf.Low_gas, false)
+	//
+	//	t.Log("[Step-3] User3 send bundle [tx2, tx1].\n")
+	//	usr1Arg := utils.User_tx(conf.RootPk3, conf.Mylock, testcase.UnlockMoreData,conf.SendA, conf.High_gas)
+	//	bundleArgs1 := utils.AddBundle(tx2, tx1, revertHash, 0)
+	//	err := usr1Arg.BuilderClient.SendBundle(usr1Arg.Ctx, bundleArgs1)
+	//	if err != nil {
+	//		log.Println(" failed: ", err.Error())
+	//	}
+	//	time.Sleep(6 * time.Second)
+	//	tx2Res := utils.GetTransactionReceipt(*tx2[0]) // High_gas
+	//	tx1Res := utils.GetTransactionReceipt(*tx1[0]) // Low_gas
+	//	log.Printf("tx2 should be first mined %v %v", tx2[0].Hash().Hex(), tx2Res.Result.TransactionIndex)
+	//	log.Printf("tx1 should follow tx2 %v %v", tx1[0].Hash().Hex(), tx1Res.Result.TransactionIndex)
+	//	assert.Equal(t, tx1Res.Result.TransactionIndex, "0x1")
+	//	assert.Equal(t, tx2Res.Result.TransactionIndex, "0x0")
+	//	//	 private 不发expected: [tx2 tx1]
+	//	//	 Mem_pool里有tx1 tx2则贵的先上
+	//})
 
 }

@@ -15,7 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/xkwang/cases"
+	"github.com/xkwang/sendBundle"
 )
 
 var (
@@ -85,13 +85,13 @@ func getUserHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("chainID %v\n", chainID)
 	}
 
-	arg := &cases.BidCaseArg{
+	arg := &sendBundle.BidCaseArg{
 		Ctx:           ctx,
 		Client:        client,
 		ChainID:       chainID,
 		RootPk:        rootPk,
 		BobPk:         bobPk,
-		Builder:       cases.NewAccount(builderPk),
+		Builder:       sendBundle.NewAccount(builderPk),
 		Validators:    []common.Address{common.HexToAddress(*validator)},
 		BidClient:     client2,
 		BuilderClient: client3,
@@ -105,7 +105,7 @@ func getUserHandler(w http.ResponseWriter, r *http.Request) {
 		// RevertList: []int{1},
 	}
 
-	txs, err := cases.RunValidBundleCases(arg)
+	txs, err := sendBundle.RunValidBundleCases(arg)
 
 	txBytes := make([]hexutil.Bytes, 0)
 	for _, tx := range txs {

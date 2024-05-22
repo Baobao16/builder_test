@@ -17,11 +17,16 @@ var (
 	SpecialOp = common.HexToAddress("0x05A9d51810475F47C914b97268ac53198dA89D68")
 	ValueCp   = common.HexToAddress("0x035b6E463A445aF6d12Dbf9b2D0150c15Be5b357")
 
+	// RcvAddress 贿赂地址
+	RcvAddress   = common.HexToAddress("0x33Af2388136bf65b4b6413A1951391F89663c644")
+	BribeAddress = common.HexToAddress("0x11c40ecf278CB259696b1f1E359f8682eE425522")
+	SysAddress   = common.HexToAddress("0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE")
 	// Coinbase = common.HexToAddress("0x7d83033eFaE53d3250cff2d9e39E4a63fdEd9712")
 
 	WBNB_gas     = int64(50000)
 	Min_gasPrice = int64(1e9)     // 小于1Gwei 的gasPrice会失败
 	Max_gasLimit = int64(3000000) // 大于3000000 的gasLimit会失败
+	SendA        = big.NewInt(0)
 	High_gas     = big.NewInt(3000000)
 	Med_gas      = big.NewInt(2000000)
 	Low_gas      = big.NewInt(1000000)
@@ -31,7 +36,6 @@ var (
 
 	SpecialOp_Bb = common.Hex2Bytes("1c6dc3c0")
 	SpecialOp_Cb = common.Hex2Bytes("e6f1f7510000000000000000000000007d83033efae53d3250cff2d9e39e4a63fded9712")
-	System_add   = common.HexToAddress("0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE")
 	// SpecialOp_Cb        = common.Hex2Bytes("e6f1f7510000000000000000000000000000000000000000000000000000000000000000")
 	SpecialOp_ts        = common.Hex2Bytes("dd48b86d00000000000000000000000000000000000000000000000000000000661f7e59")
 	SpecialOp_bh        = common.Hex2Bytes("e3533697146127548443eb5810584a021ee1b11893c267d85b88fd955f69c777f06ebe6a")

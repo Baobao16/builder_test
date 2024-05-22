@@ -10,7 +10,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/xkwang/cases"
+	"github.com/xkwang/sendBundle"
 )
 
 // func main() {
@@ -105,20 +105,20 @@ func main() {
 		fmt.Printf("chainID %v\n", chainID)
 	}
 
-	arg := &cases.BidCaseArg{
+	arg := &sendBundle.BidCaseArg{
 		Ctx:           ctx,
 		Client:        client,
 		ChainID:       chainID,
 		RootPk:        rootPk,
 		BobPk:         bobPk,
-		Builder:       cases.NewAccount(builderPk),
+		Builder:       sendBundle.NewAccount(builderPk),
 		Validators:    []common.Address{common.HexToAddress(*validator)},
 		BidClient:     client2,
 		BuilderClient: client3,
 		TxCount:       3,
 		// Contract:      common.HexToAddress("0x7b09bb26c9fef574ea980a33fc71c184405a4023"),
-		Contract:   cases.WBNB,
-		Data:       cases.TransferWBNB_code,
+		Contract:   sendBundle.WBNB,
+		Data:       sendBundle.TransferWBNB_code,
 		GasPrice:   big.NewInt(500),
 		GasLimit:   big.NewInt(50000),
 		SendAmount: big.NewInt(50),
@@ -128,35 +128,35 @@ func main() {
 	fmt.Println(arg.Builder.Address.Hex())
 
 	//单发一个bid
-	// cases.RunValidCases(arg)
+	// sendBundle.RunValidCases(arg)
 
 	//单发一个bundle
 
-	// cases.RunValidBundleCases(arg)
+	// sendBundle.RunValidBundleCases(arg)
 
 	//单发一个转账交易
-	cases.RunValidSendCases(arg)
+	sendBundle.RunValidSendCases(arg)
 
 	//单发一个裸交易
-	cases.SendRaw(arg)
+	sendBundle.SendRaw(arg)
 
 	//发两个bid
 
-	// args := make([]*cases.BidCaseArg, 2)
+	// args := make([]*sendBundle.BidCaseArg, 2)
 	// args[0] = arg
-	// args[1] = &cases.BidCaseArg{
+	// args[1] = &sendBundle.BidCaseArg{
 	// 	Ctx:           ctx,
 	// 	Client:        client,
 	// 	ChainID:       chainID,
 	// 	RootPk:        rootPk2,
 	// 	BobPk:         bobPk,
-	// 	Builder:       cases.NewAccount(builderPk),
+	// 	Builder:       sendBundle.NewAccount(builderPk),
 	// 	Validators:    []common.Address{common.HexToAddress(*validator)},
 	// 	BidClient:     client2,
 	// 	BuilderClient: client3,
 	// 	TxCount:       5,
-	// 	Contract:      cases.WBNB,
-	// 	Data:          cases.TransferWBNB_code,
+	// 	Contract:      sendBundle.WBNB,
+	// 	Data:          sendBundle.TransferWBNB_code,
 	// 	GasPrice:      big.NewInt(500),
 	// 	GasLimit:      big.NewInt(50000),
 	// 	SendAmount:    big.NewInt(50),
@@ -169,7 +169,7 @@ func main() {
 	// 	wg.Add(1)
 	// 	go func(i int) {
 	// 		time.Sleep(time.Duration(i) * time.Second)
-	// 		cases.RunValidBundleCases(args[i])
+	// 		sendBundle.RunValidBundleCases(args[i])
 	// 		wg.Done()
 	// 	}(i)
 	// }

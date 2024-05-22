@@ -7,7 +7,6 @@ import (
 	"log"
 	"math/big"
 	"reflect"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -18,8 +17,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/stretchr/testify/assert"
-	"github.com/xkwang/cases"
 	"github.com/xkwang/conf"
+	"github.com/xkwang/sendBundle"
 )
 
 type TxStatus struct {
@@ -41,92 +40,38 @@ func (c *Contract) CallFunction(method string, args ...interface{}) ([]byte, err
 	return input, nil
 }
 
-func Setup() cases.BidCaseArg {
-	// tx_type := "Transfer" // 默认为转账交易
-	client, err := ethclient.Dial(conf.Url)
+func CreateClient(url string) *ethclient.Client {
+	// 创建以太坊客户端的通用函数
+	client, err := ethclient.Dial(url)
 	if err != nil {
-		log.Println("node ethclient.DialOptions", "err", err)
+		log.Fatalf("Failed to connect to %s: %v", url, err)
 	}
-
-	client2, err := ethclient.Dial(conf.Url_1)
-	if err != nil {
-		log.Println("client2 bidclient ethclient.DialOptions", "err", err)
-	}
-
-	client3, err := ethclient.Dial(conf.Url)
-	if err != nil {
-		log.Println("client3 bidclient ethclient.DialOptions", "err", err)
-	}
-
-	// query chainID
-	chainID, err := client.ChainID(conf.Ctx)
-	if err != nil {
-		log.Printf("err %v\n", err)
-	} else {
-		log.Printf("==========获取当前链chainID ========== %v", chainID)
-	}
-
-	arg := &cases.BidCaseArg{
-		Ctx:           conf.Ctx,
-		Client:        client,      //客户端
-		ChainID:       chainID,     //client.ChainID
-		RootPk:        conf.RootPk, //root Private Key
-		BobPk:         conf.BobPk,
-		Builder:       cases.NewAccount(conf.BuilderPk),
-		Validators:    []common.Address{common.HexToAddress(*conf.Validator)},
-		BidClient:     client2,
-		BuilderClient: client3,
-		TxCount:       5,
-		Contract:      conf.WBNB, // 调用合约的地址
-		Data:          conf.TransferWBNB_code,
-		GasPrice:      big.NewInt(conf.Min_gasPrice),
-		GasLimit:      big.NewInt(conf.Max_gasLimit),
-		SendAmount:    big.NewInt(500),
-		RevertList:    []int{},
-		RevertListAdd: []int{},
-		// 调用非转账合约 1）更新Data字段 2）SendAmount置为0
-		// 确保提供的 Nonce 值是发送账户的下一个有效值
-	}
-	// t.Log(arg.Builder.Address.Hex())
-
-	return *arg
+	return client
 }
 
-func User_tx(root_name string, contract common.Address, data []byte, gasLimit *big.Int) cases.BidCaseArg {
+func UserTx(rootName string, contract common.Address, data []byte, gasLimit *big.Int) sendBundle.BidCaseArg {
 	ctx := context.Background()
 
-	rootPk := root_name
-	bobPk := root_name
+	rootPk := rootName
+	bobPk := rootName
 	builderPk := *conf.BuilderPrivateKey
 
-	client, err := ethclient.Dial(conf.Url)
-	if err != nil {
-		fmt.Println("node ethclient.DialOptions", "err", err)
-	}
+	client := CreateClient(conf.Url)
+	client2 := CreateClient(conf.Url_1)
+	client3 := CreateClient(conf.Url)
 
-	client2, err := ethclient.Dial(conf.Url_1)
-	if err != nil {
-		fmt.Println("client2 bidclient ethclient.DialOptions", "err", err)
-	}
-
-	client3, err := ethclient.Dial(conf.Url)
-	if err != nil {
-		fmt.Println("client3 bidclient ethclient.DialOptions", "err", err)
-	}
-
-	//query chainID
 	chainID, err := client.ChainID(ctx)
 	if err != nil {
-		fmt.Printf("err %v\n", err)
+		log.Fatalf("Failed to get chain ID: %v", err)
 	}
 
-	arg := &cases.BidCaseArg{
+	return sendBundle.BidCaseArg{
 		Ctx:           ctx,
 		Client:        client,
 		ChainID:       chainID,
 		RootPk:        rootPk,
 		BobPk:         bobPk,
-		Builder:       cases.NewAccount(builderPk),
+		Builder:       sendBundle.NewAccount(builderPk),
 		Validators:    []common.Address{common.HexToAddress(*conf.Validator)},
 		BidClient:     client2,
 		BuilderClient: client3,
@@ -137,42 +82,47 @@ func User_tx(root_name string, contract common.Address, data []byte, gasLimit *b
 		GasLimit:      gasLimit,
 		SendAmount:    big.NewInt(0),
 	}
-	return *arg
 }
 
-func AddBundle(txs types.Transactions, txs_new types.Transactions, revertTxHashes []common.Hash, MaxBN uint64) *types.SendBundleArgs {
-	// 构造新的bundle，包含Mempool交易
-	txBytes := make([]hexutil.Bytes, 0)
-
+func serializeTxs(txs types.Transactions, txBytes []hexutil.Bytes) []hexutil.Bytes {
+	// 定义一个函数来处理交易的序列化
 	for _, tx := range txs {
 		txByte, err := tx.MarshalBinary()
-		// fmt.Printf("txhash %v\n", tx.Hash().Hex())
 		if err != nil {
-			log.Println("tx.MarshalBinary", "err", err)
+			log.Printf("Failed to marshal tx %v: %v", tx.Hash().Hex(), err)
+			continue
 		}
 		txBytes = append(txBytes, txByte)
 	}
-	for _, tx := range txs_new {
-		txByte, err := tx.MarshalBinary()
-		// log.Printf("Private txhash %v\n", tx.Hash().Hex())
-		if err != nil {
-			log.Println("tx.MarshalBinary", "err", err)
-		}
-		txBytes = append(txBytes, txByte)
-	}
+	return txBytes
+}
 
+func AddBundle(txs types.Transactions, txsNew types.Transactions, revertTxHashes []common.Hash, MaxBN uint64) *types.SendBundleArgs {
+	// 构造新的bundle，包含Mem-pool交易
+	txBytes := make([]hexutil.Bytes, 0)
+
+	// 序列化交易
+	txBytes = serializeTxs(txs, txBytes)
+	txBytes = serializeTxs(txsNew, txBytes)
+
+	// 构建bundle参数
 	bundleArgs := &types.SendBundleArgs{
 		Txs:               txBytes,
 		RevertingTxHashes: revertTxHashes,
 		MaxBlockNumber:    MaxBN,
 	}
 
-	bidJson, _ := json.MarshalIndent(bundleArgs, "", "  ")
-	log.Println(string(bidJson))
-	return bundleArgs
+	// 打印bundle参数的JSON表示
+	if bidJson, err := json.MarshalIndent(bundleArgs, "", "  "); err == nil {
+		log.Println(string(bidJson))
+	} else {
+		log.Printf("Failed to marshal bundleArgs: %v", err)
+	}
 
+	return bundleArgs
 }
-func IsEmptyField(result Result_b) bool {
+
+func IsEmptyField(result ResultB) bool {
 	v := reflect.ValueOf(result)
 	t := reflect.TypeOf(result)
 	for i := 0; i < v.NumField(); i++ {
@@ -190,28 +140,27 @@ func IsEmptyField(result Result_b) bool {
 	return false
 }
 
-func SendLockMempool(usr string, contract common.Address, data []byte, revert bool) (types.Transactions, []common.Hash) {
-
-	usr_arg := User_tx(usr, contract, data, big.NewInt(2000000))
-	// usr_arg.GasLimit = big.NewInt(conf.Max_gasLimit)
-	// usr_arg.GasPrice = big.NewInt(conf.Min_gasPrice)
+func printTxHash(tx types.Transactions) {
+	txBytes := make([]hexutil.Bytes, 0)
+	for _, tx := range tx {
+		txByte, err := tx.MarshalBinary()
+		if err != nil {
+			log.Println("tx.MarshalBinary", "err", err)
+		}
+		txBytes = append(txBytes, txByte)
+	}
+}
+func SendLockMempool(usr string, contract common.Address, data []byte, gasLimit *big.Int, revert bool) (types.Transactions, []common.Hash) {
+	usrArg := UserTx(usr, contract, data, gasLimit)
 	if revert {
 		log.Printf("mem_pool transaction  will in bundle RevertList . ")
-		usr_arg.RevertListnormal = []int{0} // 当前交易被记入RevertList
+		usrArg.RevertListNormal = []int{0} // 当前交易被记入RevertList
 	}
 	log.Printf("Set mem_pool transaction  ")
-	tx, revertHash := cases.GenerateBNBTxs(&usr_arg, usr_arg.SendAmount, usr_arg.Data, 1)
-	// txBytes := make([]hexutil.Bytes, 0)
-	// for _, tx := range tx {
-	// 	txByte, err := tx.MarshalBinary()
-	// 	fmt.Printf("sendLockmem_pooltxhash %v\n", tx.Hash().Hex())
-	// 	if err != nil {
-	// 		log.Println("tx.MarshalBinary", "err", err)
-	// 	}
-	// 	txBytes = append(txBytes, txByte)
-	// }
-	// log.Printf("Set mem_pool transaction  %v [gasPrice: %v , gasLimit : %v] \n", tx[0].Hash(), usr_arg.GasPrice, usr_arg.GasLimit)
-	err := usr_arg.Client.SendTransaction(usr_arg.Ctx, tx[0])
+	tx, revertHash := sendBundle.GenerateBNBTxs(&usrArg, usrArg.SendAmount, usrArg.Data, 1)
+	printTxHash(tx)
+	log.Printf("Set mem_pool transaction  %v [gasPrice: %v , gasLimit : %v] \n", tx[0].Hash(), usrArg.GasPrice, usrArg.GasLimit)
+	err := usrArg.Client.SendTransaction(usrArg.Ctx, tx[0])
 
 	if err != nil {
 		fmt.Println("failed to send single Transaction", "err", err)
@@ -220,32 +169,49 @@ func SendLockMempool(usr string, contract common.Address, data []byte, revert bo
 
 }
 
-func ConcurSendBundles(t *testing.T, args []*cases.BidCaseArg, bundleArgs_lsit []*types.SendBundleArgs) uint64 {
-	cb, _ := args[0].Client.BlockNumber(args[0].Ctx)
-	log.Println("sendBundel and waiting for blk_num increased")
-
-	wg := sync.WaitGroup{}
-	for i := 0; i < 2; i++ {
-		wg.Add(1)
-		go func(i int) {
-			// time.Sleep(time.Duration(i) * time.Second)
-			err := args[i].BuilderClient.SendBundle(args[i].Ctx, bundleArgs_lsit[i])
-			if err != nil {
-				log.Println(" failed: ", err.Error())
-				assert.True(t, strings.Contains(err.Error(), conf.InvalidTx))
-			}
-			wg.Done()
-		}(i)
+func ConcurSendBundles(t *testing.T, args []*sendBundle.BidCaseArg, bundleArgsList []*types.SendBundleArgs) uint64 {
+	// 获取当前的区块号
+	currentBlockNumber, err := args[0].Client.BlockNumber(args[0].Ctx)
+	if err != nil {
+		t.Fatalf("Failed to get current block number: %v", err)
 	}
+
+	log.Println("Sending bundles and waiting for block number to increase")
+
+	var wg sync.WaitGroup
+
+	sendBundle := func(i int) {
+		defer wg.Done()
+		err := args[i].BuilderClient.SendBundle(args[i].Ctx, bundleArgsList[i])
+		if err != nil {
+			log.Printf("Sending bundle %d failed: %v", i, err)
+			assert.Contains(t, err.Error(), conf.InvalidTx)
+		}
+	}
+
+	for i := 0; i < len(args); i++ {
+		wg.Add(1)
+		go sendBundle(i)
+	}
+
 	wg.Wait()
 
+	// 等待一段时间以确保区块号增加
 	time.Sleep(5 * time.Second)
-	cbn, _ := args[0].Client.BlockNumber(args[0].Ctx)
-	assert.True(t, cbn > cb, " blk_num not increased")
-	return cbn
+
+	// 获取新的区块号
+	newBlockNumber, err := args[0].Client.BlockNumber(args[0].Ctx)
+	if err != nil {
+		t.Fatalf("Failed to get new block number: %v", err)
+	}
+
+	// 断言区块号确实增加了
+	assert.True(t, newBlockNumber > currentBlockNumber, "Block number did not increase")
+
+	return newBlockNumber
 }
 
-func Changetype(arg interface{}) int {
+func ChangeArgType(arg interface{}) int {
 	// println(arg)
 	if val, ok := arg.(int); ok {
 		fmt.Println("参数转换结果:", val)
@@ -257,90 +223,125 @@ func Changetype(arg interface{}) int {
 }
 
 func GeneEncodedData(con Contract, method string, args ...interface{}) []byte {
-	// step-2 传入method和参数 返回Encoded Data
-	var bigInt big.Int
-	var contract_data []byte
-	var err error
-	if len(args) == 0 {
-		contract_data, err = con.CallFunction(method)
-	} else if len(args) == 2 {
-		val := Changetype(args[0])
-		log.Println(val)
-		bigInt = *bigInt.SetInt64(int64(val))
-
-		args2 := []interface{}{&bigInt, args[1]}
-
-		contract_data, err = con.CallFunction(method, args2...)
-	} else if len(args) == 1 {
-		contract_data, err = con.CallFunction(method, args[0])
-	} else {
-		log.Fatalln("args nums wrong")
+	// 构造调用智能合约函数的数据
+	encodeArgs := func(args ...interface{}) ([]byte, error) {
+		if len(args) == 0 {
+			return con.CallFunction(method)
+		} else if len(args) == 1 {
+			return con.CallFunction(method, args[0])
+		} else if len(args) == 2 {
+			val := ChangeArgType(args[0])
+			log.Printf("Converted value: %v", val)
+			var bigInt big.Int
+			bigInt.SetInt64(int64(val))
+			args2 := []interface{}{&bigInt, args[1]}
+			return con.CallFunction(method, args2...)
+		} else {
+			return nil, fmt.Errorf("wrong number of arguments")
+		}
 	}
+
+	contractData, err := encodeArgs(args...)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Error encoding data: %v", err)
 	}
-	fmt.Printf("调用智能合约函数 %s, 传递参数值 %v\n", method, args) //, 交易数据: %x
-	return contract_data
+
+	log.Printf("Calling smart contract function %s with arguments %v", method, args)
+	return contractData
 }
 
-func ResetContract(t *testing.T, contract common.Address, data []byte) {
-	// 执行测试后的清理工作:调用reset合约重置lock
-	t.Log("Root User reset Contract lock\n")
-	usr_arg := User_tx(conf.RootPk, contract, data, conf.High_gas) //"gasUsed":"0x5bb2"  23474
-	usr_arg.TxCount = 1
-	txs, bundleArgs, _ := cases.ValidBundle_NilPayBidTx_1(&usr_arg)
-	bn, _ := usr_arg.Client.BlockNumber(usr_arg.Ctx)
-	log.Printf("Current Block height is: %v\n", bn)
+func ResetLockContract(t *testing.T, contract common.Address, data []byte) {
+	t.Log("Root User reset Contract lock")
+	usrArg := UserTx(conf.RootPk, contract, data, conf.High_gas)
+	usrArg.TxCount = 1
 
-	cbn := SendBundlesMined(t, usr_arg, bundleArgs)
+	txs, bundleArgs, _ := sendBundle.ValidBundle_NilPayBidTx_1(&usrArg)
 
+	bn, err := usrArg.Client.BlockNumber(usrArg.Ctx)
+	if err != nil {
+		t.Fatalf("Failed to get current block number: %v", err)
+	}
+	log.Printf("Current Block height is: %v", bn)
+
+	cbn := SendBundlesMined(t, usrArg, bundleArgs)
 	WaitMined(txs, cbn)
 
-	blk_num := CheckBundleTx(t, *txs[0], true, conf.Txsucceed)
-	log.Printf("bundle in Blk : %v \n", blk_num)
-
+	blkNum := CheckBundleTx(t, *txs[0], true, conf.Txsucceed)
+	log.Printf("Bundle included in block: %v", blkNum)
 }
 
-func SendBundlesMined(t *testing.T, usr cases.BidCaseArg, bundleArgs *types.SendBundleArgs) uint64 {
-	cb, _ := usr.Client.BlockNumber(usr.Ctx)
-	log.Println("sendBundel and waiting for blk_num increased")
-	err := usr.BuilderClient.SendBundle(usr.Ctx, bundleArgs)
-	assert.Nil(t, err)
+func SendBundlesMined(t *testing.T, usr sendBundle.BidCaseArg, bundleArgs *types.SendBundleArgs) uint64 {
+	// 获取当前的区块号
+	currentBlockNumber, err := usr.Client.BlockNumber(usr.Ctx)
+	if err != nil {
+		t.Fatalf("Failed to get current block number: %v", err)
+	}
 
+	log.Println("Sending bundle and waiting for block number to increase")
+
+	// 发送捆绑交易
+	err = usr.BuilderClient.SendBundle(usr.Ctx, bundleArgs)
+	if err != nil {
+		t.Fatalf("Failed to send bundle: %v", err)
+	}
+
+	// 等待一段时间以确保区块号增加
 	time.Sleep(6 * time.Second)
-	cbn, _ := usr.Client.BlockNumber(usr.Ctx)
-	assert.True(t, cbn > cb, " blk_num not increased")
-	return cbn
+
+	// 获取新的区块号
+	newBlockNumber, err := usr.Client.BlockNumber(usr.Ctx)
+	if err != nil {
+		t.Fatalf("Failed to get new block number: %v", err)
+	}
+
+	// 断言区块号确实增加了
+	if newBlockNumber <= currentBlockNumber {
+		t.Fatalf("Block number did not increase")
+	}
+
+	return newBlockNumber
 }
 
-func Verifytx(t *testing.T, cbn uint64, usrList []TxStatus) {
+func VerifyTx(t *testing.T, cbn uint64, usrList []TxStatus) {
 	WaitMined(usrList[0].Txs, cbn)
-	tx_blk := make([]string, 0)
-	t.Log("Verify menmpool tx .\n")
-	for _, tx := range usrList[0].Txs {
-		blk_num := CheckBundleTx(t, *tx, usrList[0].Mined, usrList[0].Rst)
-		// 若交易上链，记录交易所在区块号
-		if usrList[0].Mined {
-			tx_blk = append(tx_blk, blk_num)
+	txBlk := make([]string, 0)
+
+	verifyTransactions := func(txs types.Transactions, mined bool, result string, logMsg string) {
+		t.Log(logMsg)
+		for _, tx := range txs {
+			blkNum := CheckBundleTx(t, *tx, mined, result)
+			if mined {
+				txBlk = append(txBlk, blkNum)
+			}
 		}
 	}
-	// 依次检查bundle中的交易是否成功上链
-	t.Log("Verify Bundle1 tx .\n")
-	for _, tx := range usrList[1].Txs {
-		blk_num := CheckBundleTx(t, *tx, usrList[1].Mined, usrList[1].Rst)
-		// 若交易上链，记录交易所在区块号
-		if usrList[1].Mined {
-			tx_blk = append(tx_blk, blk_num)
-		}
+
+	t.Log("Verify Mem_pool tx.")
+	verifyTransactions(usrList[0].Txs, usrList[0].Mined, usrList[0].Rst, "Verifying Mem_pool transactions.")
+
+	t.Log("Verify Bundle1 tx.")
+	verifyTransactions(usrList[1].Txs, usrList[1].Mined, usrList[1].Rst, "Verifying Bundle1 transactions.")
+
+	t.Log("Verify Bundle2 tx.")
+	verifyTransactions(usrList[2].Txs, usrList[2].Mined, usrList[2].Rst, "Verifying Bundle2 transactions.")
+
+	TxInSameBlk(txBlk)
+}
+
+func GetAccBalance(address common.Address) *big.Int {
+	// 连接到 BSD 节点
+	client, err := ethclient.Dial(conf.Url_1)
+	if err != nil {
+		log.Fatalf("Failed to connect to the BSD node: %v", err)
 	}
-	t.Log("Verify Bundle2 tx .\n")
-	for _, tx := range usrList[2].Txs {
-		blk_num := CheckBundleTx(t, *tx, usrList[2].Mined, usrList[2].Rst)
-		if usrList[2].Mined {
-			// 若交易上链，记录交易所在区块号
-			tx_blk = append(tx_blk, blk_num)
-		}
+
+	// 指定账户地址
+	balance, err := client.BalanceAt(context.Background(), address, nil)
+	if err != nil {
+		log.Fatalf("Failed to retrieve account balance: %v", err)
 	}
-	TxinSameBlk(tx_blk)
+	// 打印账户余额
+	fmt.Printf("Balance: %s\n", balance.String())
+	return balance
 
 }

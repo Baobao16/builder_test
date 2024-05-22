@@ -1,4 +1,4 @@
-package cases
+package sendBundle
 
 import (
 	"fmt"
