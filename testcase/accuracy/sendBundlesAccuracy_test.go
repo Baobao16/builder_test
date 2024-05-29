@@ -317,50 +317,53 @@ func Test_p1_conflict_mb(t *testing.T) {
 		defer utils.ResetLockContract(t, conf.Mylock, testcase.ResetData)
 
 		t.Log("[Step-1] Root User Expose mem_pool transaction tx0")
-		tx0, revertHash := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockData, conf.Low_gas, false)
-
-		t.Log("[Step-2] User 1 bundle [tx0], tx2 not allowed to revert.")
-		bundleArgs, usrArg, _ := testcase.AddUserBundle(conf.RootPk2, conf.Mylock, testcase.ResetData, conf.SendA, conf.High_gas, tx0, revertHash, 0)
-		err := usrArg.BuilderClient.SendBundle(usrArg.Ctx, bundleArgs)
+		tx0, revertTx := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockData, conf.Low_gas, false)
+		var txs types.Transactions
+		t.Log("[Step-2] User 1 bundle [tx0].")
+		userArg := utils.UserTx(conf.RootPk2, conf.Mylock, testcase.ResetData, conf.High_gas)
+		bundleArgs := utils.AddBundle(tx0, txs, revertTx, 0)
+		err := userArg.BuilderClient.SendBundle(userArg.Ctx, bundleArgs)
 		if err != nil {
 			log.Println("failed: ", err.Error())
 		}
+
 		time.Sleep(6 * time.Second)
 		t.Log("[Step-3] Verify the transaction.")
 		response := utils.GetTransactionReceipt(*tx0[0])
 		assert.Equal(t, response.Result.Status, conf.Txsucceed)
 	})
-	//t.Run("mem_pool txs in bundle  order check", func(t *testing.T) {
-	//	// 生效需要注释掉SendLockMempool 的send
-	//	defer utils.ResetLockContract(t, conf.Mylock, testcase.ResetData)
-	//	//t.Log("[Step-1] Root User2 Expose mem_pool transaction  tx0 \n")
-	//	//tx0, _ := utils.SendLockMempool(conf.RootPk2, conf.Mylock, testcase.LockData,conf.SendA, conf.Low_gas, false)
-	//	//time.Sleep(6 * time.Second)
-	//	//response1 := utils.GetTransactionReceipt(*tx0[0])
-	//	//assert.Equal(t, response1.Result.Status, conf.Txsucceed)
-	//
-	//	t.Log("[Step-2] Root User1 Expose mem_pool transaction  tx1 \n")
-	//	tx1, revertHash := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockData,conf.SendA, conf.High_gas, false)
-	//
-	//	t.Log("[Step-2] Root User2 Expose mem_pool transaction  tx2 \n")
-	//	tx2, _ := utils.SendLockMempool(conf.RootPk2, conf.Mylock, testcase.LockData,conf.SendA, conf.Low_gas, false)
-	//
-	//	t.Log("[Step-3] User3 send bundle [tx2, tx1].\n")
-	//	usr1Arg := utils.User_tx(conf.RootPk3, conf.Mylock, testcase.UnlockMoreData,conf.SendA, conf.High_gas)
-	//	bundleArgs1 := utils.AddBundle(tx2, tx1, revertHash, 0)
-	//	err := usr1Arg.BuilderClient.SendBundle(usr1Arg.Ctx, bundleArgs1)
-	//	if err != nil {
-	//		log.Println(" failed: ", err.Error())
-	//	}
-	//	time.Sleep(6 * time.Second)
-	//	tx2Res := utils.GetTransactionReceipt(*tx2[0]) // High_gas
-	//	tx1Res := utils.GetTransactionReceipt(*tx1[0]) // Low_gas
-	//	log.Printf("tx2 should be first mined %v %v", tx2[0].Hash().Hex(), tx2Res.Result.TransactionIndex)
-	//	log.Printf("tx1 should follow tx2 %v %v", tx1[0].Hash().Hex(), tx1Res.Result.TransactionIndex)
-	//	assert.Equal(t, tx1Res.Result.TransactionIndex, "0x1")
-	//	assert.Equal(t, tx2Res.Result.TransactionIndex, "0x0")
-	//	//	 private 不发expected: [tx2 tx1]
-	//	//	 Mem_pool里有tx1 tx2则贵的先上
-	//})
+
+	t.Run("mem_pool txs in bundle  order check", func(t *testing.T) {
+		// 生效需要注释掉SendLockMempool 的send
+		defer utils.ResetLockContract(t, conf.Mylock, testcase.ResetData)
+		//t.Log("[Step-1] Root User2 Expose mem_pool transaction  tx0 \n")
+		//tx0, _ := utils.SendLockMempool(conf.RootPk2, conf.Mylock, testcase.LockData,conf.SendA, conf.Low_gas, false)
+		//time.Sleep(6 * time.Second)
+		//response1 := utils.GetTransactionReceipt(*tx0[0])
+		//assert.Equal(t, response1.Result.Status, conf.Txsucceed)
+
+		t.Log("[Step-2] Root User1 Expose mem_pool transaction  tx1 \n")
+		tx1, revertHash := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockData, conf.High_gas, false)
+
+		t.Log("[Step-2] Root User2 Expose mem_pool transaction  tx2 \n")
+		tx2, _ := utils.SendLockMempool(conf.RootPk2, conf.Mylock, testcase.LockData, conf.Low_gas, false)
+
+		t.Log("[Step-3] User3 send bundle [tx2, tx1].\n")
+		usr1Arg := utils.UserTx(conf.RootPk3, conf.Mylock, testcase.UnlockMoreData, conf.High_gas)
+		bundleArgs1 := utils.AddBundle(tx2, tx1, revertHash, 0)
+		err := usr1Arg.BuilderClient.SendBundle(usr1Arg.Ctx, bundleArgs1)
+		if err != nil {
+			log.Println(" failed: ", err.Error())
+		}
+		time.Sleep(6 * time.Second)
+		tx2Res := utils.GetTransactionReceipt(*tx2[0]) // High_gas
+		tx1Res := utils.GetTransactionReceipt(*tx1[0]) // Low_gas
+		log.Printf("tx2 should be first mined %v %v", tx2[0].Hash().Hex(), tx2Res.Result.TransactionIndex)
+		log.Printf("tx1 should follow tx2 %v %v", tx1[0].Hash().Hex(), tx1Res.Result.TransactionIndex)
+		assert.Equal(t, tx1Res.Result.TransactionIndex, "0x1")
+		assert.Equal(t, tx2Res.Result.TransactionIndex, "0x0")
+		//	 1. private 不发expected: [tx2 tx1]
+		//	 2. Mem_pool里有tx1 tx2则贵的先上
+	})
 
 }
