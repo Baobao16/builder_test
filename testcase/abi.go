@@ -3,9 +3,11 @@ package testcase
 import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/stretchr/testify/assert"
 	"github.com/xkwang/conf"
 	"github.com/xkwang/sendBundle"
 	"github.com/xkwang/utils"
+	"log"
 	"math/big"
 	"testing"
 )
@@ -50,4 +52,10 @@ func SendBundles(t *testing.T, usr1Arg *sendBundle.BidCaseArg, usr2Arg *sendBund
 	BundleargsLsit[0] = bundleArgs1
 	BundleargsLsit[1] = bundleArgs2
 	return utils.ConcurSendBundles(t, Args, BundleargsLsit)
+}
+func CheckTransactionIndex(t *testing.T, tx types.Transaction, expectedIndex string) {
+	response := utils.GetTransactionReceipt(tx)
+	txIndex := response.Result.TransactionIndex
+	assert.Equal(t, txIndex, expectedIndex)
+	log.Printf("Transaction %v index: %v", tx.Hash().Hex(), txIndex)
 }

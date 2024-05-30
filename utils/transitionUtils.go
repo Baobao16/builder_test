@@ -88,6 +88,7 @@ func serializeTxs(txs types.Transactions, txBytes []hexutil.Bytes) []hexutil.Byt
 	// 定义一个函数来处理交易的序列化
 	for _, tx := range txs {
 		txByte, err := tx.MarshalBinary()
+		log.Printf("txhash %v will be send \n", tx.Hash().Hex())
 		if err != nil {
 			log.Printf("Failed to marshal tx %v: %v", tx.Hash().Hex(), err)
 			continue
@@ -140,31 +141,24 @@ func IsEmptyField(result ResultB) bool {
 	return false
 }
 
-func printTxHash(tx types.Transactions) {
-	txBytes := make([]hexutil.Bytes, 0)
-	for _, tx := range tx {
-		txByte, err := tx.MarshalBinary()
-		if err != nil {
-			log.Println("tx.MarshalBinary", "err", err)
-		}
-		txBytes = append(txBytes, txByte)
-	}
-}
-func SendLockMempool(usr string, contract common.Address, data []byte, gasLimit *big.Int, revert bool) (types.Transactions, []common.Hash) {
+func SendLockMempool(usr string, contract common.Address, data []byte, gasLimit *big.Int, revert bool, send bool) (types.Transactions, []common.Hash) {
 	usrArg := UserTx(usr, contract, data, gasLimit)
 	if revert {
 		log.Printf("mem_pool transaction  will in bundle RevertList . ")
 		usrArg.RevertListNormal = []int{0} // 当前交易被记入RevertList
 	}
-	log.Printf("Set mem_pool transaction  ")
+	//log.Printf("Set mem_pool transaction  ")
 	tx, revertHash := sendBundle.GenerateBNBTxs(&usrArg, usrArg.SendAmount, usrArg.Data, 1)
-	printTxHash(tx)
-	log.Printf("Set mem_pool transaction  %v [gasPrice: %v , gasLimit : %v] \n", tx[0].Hash(), usrArg.GasPrice, usrArg.GasLimit)
-	err := usrArg.Client.SendTransaction(usrArg.Ctx, tx[0])
-
-	if err != nil {
-		fmt.Println("failed to send single Transaction", "err", err)
+	txBytes := make([]hexutil.Bytes, 0)
+	serializeTxs(tx, txBytes)
+	if send {
+		err := usrArg.Client.SendTransaction(usrArg.Ctx, tx[0])
+		log.Printf("Send Mem_pool transaction  %v [gasPrice: %v , gasLimit : %v] \n", tx[0].Hash(), usrArg.GasPrice, usrArg.GasLimit)
+		if err != nil {
+			fmt.Println("failed to send single Transaction", "err", err)
+		}
 	}
+
 	return tx, revertHash
 
 }

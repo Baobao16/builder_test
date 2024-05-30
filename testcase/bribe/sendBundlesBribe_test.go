@@ -22,13 +22,6 @@ var valueCpABI = utils.Contract{ABI: *ValueCpABI}
 var betT = utils.GeneEncodedData(valueCpABI, "bet", true)
 var betF = utils.GeneEncodedData(valueCpABI, "bet", false)
 
-func checkTransactionIndex(t *testing.T, tx types.Transaction, expectedIndex string) {
-	response := utils.GetTransactionReceipt(tx)
-	txIndex := response.Result.TransactionIndex
-	assert.Equal(t, txIndex, expectedIndex)
-	log.Printf("Transaction %v index: %v", tx.Hash().Hex(), txIndex)
-}
-
 func Test_p0_value_preservation(t *testing.T) {
 	var txs types.Transactions
 	bribeFee1 := big.NewInt(0.01 * 1e18)
@@ -67,11 +60,11 @@ func Test_p0_value_preservation(t *testing.T) {
 			//t.Logf("Tx1 in Blk : %v .\n", blk)
 			//assert.Equal(t, blk, int64(MaxBN))
 			if tc.aMinted {
-				checkTransactionIndex(t, *txs1[0], "0x0")
+				testcase.CheckTransactionIndex(t, *txs1[0], "0x0")
 			}
 			if tc.bMinted {
 				//assert.Equal(t, response1.Result.BlockNumber, response2.Result.BlockNumber, "tx1 tx2 in diff Block")
-				checkTransactionIndex(t, *txs2[0], "0x1")
+				testcase.CheckTransactionIndex(t, *txs2[0], "0x1")
 			}
 
 		})
@@ -91,7 +84,7 @@ func Test_p0_bribe(t *testing.T) {
 
 		t.Log("[Step-1] Root User Expose Mem_pool transaction tx1\n")
 		lockData := utils.GeneEncodedData(testcase.LockABI, "lock", 1, true)
-		txs, _ := utils.SendLockMempool(conf.RootPk, conf.Mylock, lockData, conf.Med_gas, false)
+		txs, _ := utils.SendLockMempool(conf.RootPk, conf.Mylock, lockData, conf.Med_gas, false, true)
 
 		t.Log("[Step-2] User 1 bundle [tx1, tx2], tx2 not allowed to revert.\n")
 		bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk, conf.ValueCp, testcase.UnlockMoreData, conf.SendA, conf.High_gas, txs, nil, 0)
@@ -132,7 +125,7 @@ func Test_p0_bribe(t *testing.T) {
 		*/
 		t.Log("[Step-1] Root User Expose mem_pool transaction  tx1\n")
 		lockData := utils.GeneEncodedData(testcase.LockABI, "lock", 1, true)
-		txs, _ := utils.SendLockMempool(conf.RootPk, conf.Mylock, lockData, conf.Med_gas, false)
+		txs, _ := utils.SendLockMempool(conf.RootPk, conf.Mylock, lockData, conf.Med_gas, false, true)
 
 		t.Log("[Step-2] User 1 bundle [tx1, tx2], tx2 not allowed to revert.\n")
 		bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk2, conf.Mylock, testcase.UnlockMoreData, conf.SendA, conf.High_gas, txs, nil, 0)
@@ -258,8 +251,8 @@ func Test_p0_BundleBribe(t *testing.T) {
 			//
 			testcase.SendBundles(t, &usr1Arg, &usr2Arg, bundleArgs1, bundleArgs2)
 			time.Sleep(3 * time.Second)
-			checkTransactionIndex(t, *txs1[0], tc.txOrder[0])
-			checkTransactionIndex(t, *txs2[0], tc.txOrder[1])
+			testcase.CheckTransactionIndex(t, *txs1[0], tc.txOrder[0])
+			testcase.CheckTransactionIndex(t, *txs2[0], tc.txOrder[1])
 			utils.GetAccBalance(conf.BribeAddress)
 			Balance2 := utils.GetAccBalance(conf.RcvAddress)
 			result := new(big.Int)
