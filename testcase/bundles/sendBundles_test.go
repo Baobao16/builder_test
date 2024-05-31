@@ -28,22 +28,22 @@ sendbundle 接口测试
 
 // 正常sendBundle
 func Test_p0_sendBundle(t *testing.T) {
-	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferWBNB_code, conf.High_gas)
+	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferwbnbCode, conf.HighGas)
 	t.Run("sendValidBundle_tx", func(t *testing.T) {
 		// bundle 中均为合法转账交易
 		t.Log("Start sendBundle \n")
 		//conf.Mylock, testcase.UnlockDeMoreData, conf.SendA, conf.Low_gas,
 		arg.Contract = conf.Mylock
 		//arg.Data = testcase.LockData
-		arg.Data = testcase.UnlockDeStrData
+		arg.Data = testcase.UnlockDeMoreData
 		arg.TxCount = 1
-		arg.GasLimit = conf.Med_gas
+		arg.GasLimit = conf.LowGas
 		txs, bundleArgs, _ := sendBundle.ValidBundle_NilPayBidTx_1(&arg)
 		cbn := utils.SendBundlesMined(t, arg, bundleArgs)
 		utils.WaitMined(txs, cbn)
 		for _, tx := range txs {
 			// 依次检查bundle中的交易是否成功上链
-			blkN := utils.CheckBundleTx(t, *tx, true, conf.Txsucceed)
+			blkN := utils.CheckBundleTx(t, *tx, true, conf.TxSucceed)
 			txBlk = append(txBlk, blkN)
 		}
 		if !utils.TxInSameBlk(txBlk) {
@@ -61,7 +61,7 @@ sendBundle包含 revert交易
 5.Bundle_no_revert   - in revertList
 */
 func Test_p0_sendBundle_revert(t *testing.T) {
-	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferWBNB_code, conf.High_gas)
+	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferwbnbCode, conf.HighGas)
 	t.Run("sendValidBundle_all_revert", func(t *testing.T) {
 		// revert 交易均在revertList中记录
 		t.Log("generate revert transaction \n")
@@ -74,7 +74,7 @@ func Test_p0_sendBundle_revert(t *testing.T) {
 		cbn := utils.SendBundlesMined(t, arg, bundleArgs)
 		utils.WaitMined(txs, cbn)
 		for _, tx := range txs {
-			blkN := utils.CheckBundleTx(t, *tx, true, conf.Txfailed)
+			blkN := utils.CheckBundleTx(t, *tx, true, conf.TxFailed)
 			txBlk = append(txBlk, blkN)
 		}
 		if !utils.TxInSameBlk(txBlk) {
@@ -101,9 +101,9 @@ func Test_p0_sendBundle_revert(t *testing.T) {
 		var txBlk []string
 		for index, tx := range txs {
 			// 检查交易是否成功上链
-			expectedStatus := conf.Txsucceed
+			expectedStatus := conf.TxSucceed
 			if index < 3 {
-				expectedStatus = conf.Txfailed
+				expectedStatus = conf.TxFailed
 			}
 			blkN := utils.CheckBundleTx(t, *tx, true, expectedStatus)
 			txBlk = append(txBlk, blkN)
@@ -116,7 +116,7 @@ func Test_p0_sendBundle_revert(t *testing.T) {
 }
 
 func Test_p1_sendBundle_revert(t *testing.T) {
-	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferWBNB_code, conf.High_gas)
+	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferwbnbCode, conf.HighGas)
 	arg.RevertList = []int{0, 1, 2}
 	msg := conf.InvalidTx
 	// 存在未记录在revertList中的 revert交易
@@ -135,7 +135,7 @@ func Test_p1_sendBundle_revert(t *testing.T) {
 		utils.BlockHeightIncreased(t)
 		for _, tx := range txs {
 			// bundle中的交易均不能上链
-			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+			utils.CheckBundleTx(t, *tx, false, conf.TxFailed)
 		}
 	})
 	t.Run("sendValidBundle_miss_revert", func(t *testing.T) {
@@ -153,7 +153,7 @@ func Test_p1_sendBundle_revert(t *testing.T) {
 		utils.BlockHeightIncreased(t)
 		for _, tx := range txs {
 			// bundle中的交易均不能上链
-			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+			utils.CheckBundleTx(t, *tx, false, conf.TxFailed)
 		}
 	})
 	t.Run("sendValidBundle_illegal_revert", func(t *testing.T) {
@@ -172,7 +172,7 @@ func Test_p1_sendBundle_revert(t *testing.T) {
 		utils.BlockHeightIncreased(t)
 		for _, tx := range txs {
 			// 依次检查bundle中的交易是否成功上链
-			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+			utils.CheckBundleTx(t, *tx, false, conf.TxFailed)
 		}
 	})
 }
@@ -181,7 +181,7 @@ func Test_p1_sendBundle_revert(t *testing.T) {
 sendBundle 参数 - TxCount
 */
 func Test_p2_sendBundle_txCount(t *testing.T) {
-	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferWBNB_code, conf.High_gas)
+	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferwbnbCode, conf.HighGas)
 	msg := ""
 	txCountLists := []int{0, 30, 3000, 99999}
 	for _, count := range txCountLists {
@@ -206,7 +206,7 @@ func Test_p2_sendBundle_txCount(t *testing.T) {
 			utils.BlockHeightIncreased(t)
 			// for _, tx := range txs {
 			// 	// 依次检查bundle中的交易是否成功上链
-			// 	CheckBundleTx(t, *tx, valid, conf.Txsucceed)
+			// 	CheckBundleTx(t, *tx, valid, conf.TxSucceed)
 			// }
 		})
 	}
@@ -216,7 +216,7 @@ func Test_p2_sendBundle_txCount(t *testing.T) {
 sendBundle 参数 - maxBlockNumber
 */
 func Test_p1_sendBundle_maxBN(t *testing.T) {
-	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferWBNB_code, conf.High_gas)
+	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferwbnbCode, conf.HighGas)
 	// maxBlockNumber最多设为当前区块号+100
 	t.Run("maxBlockNumber_large", func(t *testing.T) {
 		blockNum, err := arg.Client.BlockNumber(arg.Ctx)
@@ -233,7 +233,7 @@ func Test_p1_sendBundle_maxBN(t *testing.T) {
 		utils.BlockHeightIncreased(t)
 		for _, tx := range txs {
 			// 依次检查bundle中的交易是否成功上链
-			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+			utils.CheckBundleTx(t, *tx, false, conf.TxFailed)
 		}
 	})
 	// 过期的区块号
@@ -249,7 +249,7 @@ func Test_p1_sendBundle_maxBN(t *testing.T) {
 			}
 			if count != 0 {
 				for _, tx := range txs {
-					utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+					utils.CheckBundleTx(t, *tx, false, conf.TxFailed)
 				}
 			}
 		})
@@ -261,7 +261,7 @@ func Test_p1_sendBundle_maxBN(t *testing.T) {
 sendBundle 参数 - maxTimeStamp
 */
 func Test_p1_sendBundle_maxTS(t *testing.T) {
-	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferWBNB_code, conf.High_gas)
+	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferwbnbCode, conf.HighGas)
 	t.Run("maxTimestamp_equal_current+300", func(t *testing.T) {
 		currentTime := time.Now().Unix()
 		futureTime := currentTime + int64(rand.Intn(timeLimit))
@@ -276,7 +276,7 @@ func Test_p1_sendBundle_maxTS(t *testing.T) {
 		// for _, tx := range txs {
 		// 	// 依次检查bundle中的交易是否成功上链
 		// 	// 根据 交易index 确定校验的 tx_type
-		// 	CheckBundleTx(t, *tx, true, conf.Txsucceed)
+		// 	CheckBundleTx(t, *tx, true, conf.TxSucceed)
 		// }
 	})
 
@@ -295,13 +295,13 @@ func Test_p1_sendBundle_maxTS(t *testing.T) {
 		utils.WaitMined(txs, cbn)
 		for _, tx := range txs {
 			// 依次检查bundle中的交易是否成功上链
-			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+			utils.CheckBundleTx(t, *tx, false, conf.TxFailed)
 		}
 	})
 }
 
 func Test_p2_sendBundle_maxTS(t *testing.T) {
-	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferWBNB_code, conf.High_gas)
+	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferwbnbCode, conf.HighGas)
 	var currentTime int64 = time.Now().Unix()
 	t.Run("maxTS_more_than_current+300", func(t *testing.T) {
 		msg := conf.TimestampTop
@@ -316,7 +316,7 @@ func Test_p2_sendBundle_maxTS(t *testing.T) {
 		}
 		for _, tx := range txs {
 			// 依次检查bundle中的交易是否成功上链
-			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+			utils.CheckBundleTx(t, *tx, false, conf.TxFailed)
 		}
 	})
 
@@ -333,7 +333,7 @@ func Test_p2_sendBundle_maxTS(t *testing.T) {
 		utils.BlockHeightIncreased(t)
 		for _, tx := range txs {
 			// 依次检查bundle中的交易是否成功上链
-			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+			utils.CheckBundleTx(t, *tx, false, conf.TxFailed)
 		}
 
 	})
@@ -343,7 +343,7 @@ func Test_p2_sendBundle_maxTS(t *testing.T) {
 sendBundle 参数 - minTimeStamp
 */
 func Test_p1_sendBundle_minTS(t *testing.T) {
-	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferWBNB_code, conf.High_gas)
+	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferwbnbCode, conf.HighGas)
 	t.Run("sendValidBundle_arg_minT", func(t *testing.T) {
 		//minTimestamp为未来时间 未超过设置时间 5*60 限制MaxBN生效
 		var currentTime int64 = time.Now().Unix()
@@ -361,7 +361,7 @@ func Test_p1_sendBundle_minTS(t *testing.T) {
 		utils.WaitMined(txs, cbn)
 		for _, tx := range txs {
 			// 依次检查bundle中的交易是否成功上链
-			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+			utils.CheckBundleTx(t, *tx, false, conf.TxFailed)
 		}
 	})
 	t.Run("minTimeStamp_less_than_currentTime", func(t *testing.T) {
@@ -376,13 +376,13 @@ func Test_p1_sendBundle_minTS(t *testing.T) {
 		utils.WaitMined(txs, cbn)
 		for _, tx := range txs {
 			// 依次检查bundle中的交易是否成功上链
-			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+			utils.CheckBundleTx(t, *tx, false, conf.TxFailed)
 		}
 	})
 }
 
 func Test_p2_sendBundle_minTS(t *testing.T) {
-	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferWBNB_code, conf.High_gas)
+	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferwbnbCode, conf.HighGas)
 	currentTime := time.Now().Unix()
 
 	t.Run("sendValidBundle_arg_minTS_no_drop", func(t *testing.T) {
@@ -398,12 +398,12 @@ func Test_p2_sendBundle_minTS(t *testing.T) {
 		utils.BlockHeightIncreased(t)
 		for _, tx := range txs {
 			// 依次检查bundle中的交易是否成功上链
-			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+			utils.CheckBundleTx(t, *tx, false, conf.TxFailed)
 		}
 		utils.BlockHeightIncreased(t)
 		for _, tx := range txs {
 			// 依次检查bundle中的交易是否成功上链
-			blkN := utils.CheckBundleTx(t, *tx, true, conf.Txsucceed)
+			blkN := utils.CheckBundleTx(t, *tx, true, conf.TxSucceed)
 			txBlk = append(txBlk, blkN)
 		}
 		if !utils.TxInSameBlk(txBlk) {
@@ -424,7 +424,7 @@ func Test_p2_sendBundle_minTS(t *testing.T) {
 		utils.BlockHeightIncreased(t)
 		for _, tx := range txs {
 			// 依次检查bundle中的交易是否成功上链
-			blkN := utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+			blkN := utils.CheckBundleTx(t, *tx, false, conf.TxFailed)
 			txBlk = append(txBlk, blkN)
 		}
 	})
@@ -446,7 +446,7 @@ func Test_p2_sendBundle_minTS(t *testing.T) {
 		utils.BlockHeightIncreased(t)
 		for _, tx := range txs {
 			// 依次检查bundle中的交易是否成功上链
-			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+			utils.CheckBundleTx(t, *tx, false, conf.TxFailed)
 		}
 		// 300后可上链
 	})
@@ -457,7 +457,7 @@ func Test_p2_sendBundle_minTS(t *testing.T) {
 sendBundle 参数 - maxTimeStamp&minTimeStamp
 */
 func Test_p2_sendBundle_mmTS(t *testing.T) {
-	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferWBNB_code, conf.High_gas)
+	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferwbnbCode, conf.HighGas)
 	var currentTime int64 = time.Now().Unix()
 	msg := conf.TimestampMM
 	convertedTime := uint64(currentTime + int64(rand.Intn(timeLimit)))
@@ -475,7 +475,7 @@ func Test_p2_sendBundle_mmTS(t *testing.T) {
 		utils.BlockHeightIncreased(t)
 		for _, tx := range txs {
 			// 依次检查bundle中的交易是否成功上链
-			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+			utils.CheckBundleTx(t, *tx, false, conf.TxFailed)
 		}
 
 	})
@@ -495,7 +495,7 @@ func Test_p2_sendBundle_mmTS(t *testing.T) {
 		utils.BlockHeightIncreased(t)
 		for _, tx := range txs {
 			// 依次检查bundle中的交易是否成功上链
-			utils.CheckBundleTx(t, *tx, false, conf.Txfailed)
+			utils.CheckBundleTx(t, *tx, false, conf.TxFailed)
 		}
 
 	})
@@ -506,7 +506,7 @@ sendBundle 并发
 */
 // diff account
 func Test_p0_sendBundle_batch(t *testing.T) {
-	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferWBNB_code, conf.High_gas)
+	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferwbnbCode, conf.HighGas)
 	client := utils.CreateClient(conf.Url)
 	client2 := utils.CreateClient(conf.Url_1)
 	client3 := utils.CreateClient(conf.Url)
@@ -531,7 +531,7 @@ func Test_p0_sendBundle_batch(t *testing.T) {
 			BidClient:     client2,
 			BuilderClient: client3,
 			TxCount:       10,
-			Data:          conf.TotallysplWBNB_code,
+			Data:          conf.TotallysplwbnbCode,
 			Contract:      conf.WBNB,
 			GasPrice:      big.NewInt(10e9),
 			GasLimit:      big.NewInt(24000),
@@ -558,7 +558,7 @@ func Test_p0_sendBundle_batch(t *testing.T) {
 
 // same account
 func Test_p1_sendBundle_conflict(t *testing.T) {
-	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferWBNB_code, conf.High_gas)
+	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferwbnbCode, conf.HighGas)
 	t.Run("sendValidBundle_conflict", func(t *testing.T) {
 		args := make([]*sendBundle.BidCaseArg, 2)
 		args[0] = &arg
@@ -576,7 +576,7 @@ func Test_p1_sendBundle_conflict(t *testing.T) {
 				time.Sleep(5 * time.Second)
 				for _, tx := range txs {
 					// 依次检查bundle中的交易是否成功上链
-					utils.CheckBundleTx(t, *tx, true, conf.Txsucceed)
+					utils.CheckBundleTx(t, *tx, true, conf.TxSucceed)
 				}
 				wg.Done()
 			}(i)

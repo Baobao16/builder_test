@@ -123,7 +123,7 @@ func GetLatestBlockNumber() string {
 func GetBlockMsg(arg string) string {
 	blkNum := GetLatestBlockNumber()
 	payload := fmt.Sprintf(`{"id":1,"jsonrpc":"2.0","params":["%s",true],"method":"eth_getBlockByNumber"}`, blkNum)
-	fmt.Printf("%v", payload)
+	//fmt.Printf("%v", payload)
 
 	res, err := sendRequest(conf.Url, strings.NewReader(payload))
 	if err != nil {
@@ -216,9 +216,9 @@ func CheckBundleTx(t *testing.T, tx types.Transaction, valid bool, status string
 
 	if valid {
 		log.Printf("Transaction executed %v transactionIndex is: 【 %v 】", response.Result.Status, response.Result.TransactionIndex)
-		if status == conf.Txsucceed {
+		if status == conf.TxSucceed {
 			log.Printf("%v gasUsed %v \n", tx.Hash().Hex(), response.Result.GasUsed)
-		} else if response.Result.Status == conf.Txsucceed {
+		} else if response.Result.Status == conf.TxSucceed {
 			log.Printf("Transaction %v blockNumber is :%v ", tx.Hash().Hex(), response.Result.BlockNumber)
 			log.Printf("Transaction %v [expected] failed to be mined gasUsed %v transactionIndex is: 【 %v 】  \n ", tx.Hash().Hex(), response.Result.GasUsed, response.Result.TransactionIndex)
 		}

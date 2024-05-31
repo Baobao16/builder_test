@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-var LockABIfile = utils.GeneABI(conf.Lock_path)
+var LockABIfile = utils.GeneABI(conf.LockPath)
 
 // step-1 读取abi文件
 var LockABI = utils.Contract{ABI: *LockABIfile}

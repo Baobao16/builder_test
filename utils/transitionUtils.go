@@ -78,7 +78,7 @@ func UserTx(rootName string, contract common.Address, data []byte, gasLimit *big
 		TxCount:       3,
 		Contract:      contract,
 		Data:          data,
-		GasPrice:      big.NewInt(conf.Min_gasPrice),
+		GasPrice:      big.NewInt(conf.MinGasPrice),
 		GasLimit:      gasLimit,
 		SendAmount:    big.NewInt(0),
 	}
@@ -246,7 +246,7 @@ func GeneEncodedData(con Contract, method string, args ...interface{}) []byte {
 
 func ResetLockContract(t *testing.T, contract common.Address, data []byte) {
 	t.Log("Root User reset Contract lock")
-	usrArg := UserTx(conf.RootPk, contract, data, conf.High_gas)
+	usrArg := UserTx(conf.RootPk, contract, data, conf.HighGas)
 	usrArg.TxCount = 1
 
 	txs, bundleArgs, _ := sendBundle.ValidBundle_NilPayBidTx_1(&usrArg)
@@ -260,7 +260,7 @@ func ResetLockContract(t *testing.T, contract common.Address, data []byte) {
 	cbn := SendBundlesMined(t, usrArg, bundleArgs)
 	WaitMined(txs, cbn)
 
-	blkNum := CheckBundleTx(t, *txs[0], true, conf.Txsucceed)
+	blkNum := CheckBundleTx(t, *txs[0], true, conf.TxSucceed)
 	log.Printf("Bundle included in block: %v", blkNum)
 }
 

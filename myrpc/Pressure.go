@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/xkwang/conf"
 	"log"
 	"math/big"
 	"math/rand"
@@ -97,8 +98,8 @@ func getUserHandler(w http.ResponseWriter, r *http.Request) {
 		BuilderClient: client3,
 		TxCount:       rand.Intn(20),
 		// Contract:      common.HexToAddress("0x7b09bb26c9fef574ea980a33fc71c184405a4023"),
-		Contract:   common.HexToAddress("0x199e3Bfb54f4aAa9D67d1BB56429c5ef9D1A2A91"),                            // 合约地址
-		Data:       common.Hex2Bytes("a6f9dae10000000000000000000000007b09bb26c9fef574ea980a33fc71c184405a4023"), //合约方法
+		Contract:   common.HexToAddress("0x199e3Bfb54f4aAa9D67d1BB56429c5ef9D1A2A91"), // 合约地址
+		Data:       conf.TransferBNBCode,                                              //合约方法
 		GasPrice:   big.NewInt(2e9),
 		GasLimit:   big.NewInt(22000),
 		SendAmount: big.NewInt(1e18), //非转账交易需设置为0

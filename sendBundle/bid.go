@@ -14,14 +14,7 @@ import (
 	"math/big"
 )
 
-var (
-	WBNB                 = common.HexToAddress("0xE5454b639B241c07Fc0d55b23690F9CeE18b7E4f")
-	TransferBNB_code     = common.Hex2Bytes("a6f9dae10000000000000000000000007b09bb26c9fef574ea980a33fc71c184405a4023")
-	TransferWBNB_code    = common.Hex2Bytes("1a695230000000000000000000000000e5454b639b241c07fc0d55b23690f9cee18b7e4f")
-	TBalanceOfWBNB_code  = common.Hex2Bytes("70a08231000000000000000000000000e5454b639b241c07fc0d55b23690f9cee18b7e4f")
-	TotallysplWBNB_code  = common.Hex2Bytes("18160ddd")
-	AllowanceRouter_code = common.Hex2Bytes("3e5beab9000000000000000000000000e1f45ef433b2adf7583917974543a2df2161dd6c")
-)
+var ()
 
 type Account struct {
 	Address    common.Address
@@ -30,12 +23,35 @@ type Account struct {
 	//Nonce atomic.Int32
 }
 
-func (a *Account) TransferBNB(nonce uint64, toAddress common.Address, data []byte, chainID *big.Int, amount *big.Int, gasprice *big.Int, gaslimit *big.Int) (*types.Transaction, error) {
+type BidCaseArg struct {
+	Ctx              context.Context
+	Client           *ethclient.Client
+	BidClient        *ethclient.Client
+	BuilderClient    *ethclient.Client
+	ChainID          *big.Int
+	RootPk, BobPk    string
+	Contract         common.Address
+	Builder          *Account
+	Validators       []common.Address
+	TxCount          int
+	Data             []byte
+	GasLimit         *big.Int
+	GasPrice         *big.Int
+	SendAmount       *big.Int
+	RevertList       []int //会revert的交易，加入revertList
+	RevertListAdd    []int //会revert的交易，但不加入revertList
+	RevertListNormal []int //把正常交易加入revertList
+	MaxBN            uint64
+	MinTS            *uint64
+	MaxTS            *uint64
+}
+
+func (a *Account) TransferBNB(nonce uint64, toAddress common.Address, data []byte, chainID *big.Int, amount *big.Int, gasPrice *big.Int, gaslimit *big.Int) (*types.Transaction, error) {
 	tx := types.NewTx(&types.LegacyTx{
 		Nonce:    nonce,
 		To:       &toAddress,
 		Value:    amount,
-		GasPrice: gasprice,
+		GasPrice: gasPrice,
 		Gas:      gaslimit.Uint64(),
 		Data:     data,
 	})
@@ -93,29 +109,6 @@ func PriKeyToAddress(privateKey string) (*ecdsa.PrivateKey, common.Address) {
 	return privateECDSAKey, selfAddress
 }
 
-type BidCaseArg struct {
-	Ctx              context.Context
-	Client           *ethclient.Client
-	BidClient        *ethclient.Client
-	BuilderClient    *ethclient.Client
-	ChainID          *big.Int
-	RootPk, BobPk    string
-	Contract         common.Address
-	Builder          *Account
-	Validators       []common.Address
-	TxCount          int
-	Data             []byte
-	GasLimit         *big.Int
-	GasPrice         *big.Int
-	SendAmount       *big.Int
-	RevertList       []int //会revert的交易，加入revertList
-	RevertListAdd    []int //会revert的交易，但不加入revertList
-	RevertListNormal []int //把正常交易加入revertList
-	MaxBN            uint64
-	MinTS            *uint64
-	MaxTS            *uint64
-}
-
 func GenerateBNBTxs(arg *BidCaseArg, amountPerTx *big.Int, data []byte, txCount int) (types.Transactions, []common.Hash) {
 	//bundleFactory := NewBidFactory(arg.Ctx, arg.Client, arg.RootPk, arg.BobPk, arg.Abc)
 	revertTxHashes := make([]common.Hash, 0)
@@ -151,13 +144,13 @@ func GenerateBNBTxs(arg *BidCaseArg, amountPerTx *big.Int, data []byte, txCount 
 
 		} else if revertTxs[i] == "RevertList" {
 			// RevertList 中的交易设置为会revert
-			bundle, err = rootAccount.TransferBNB(rootAccount.Nonce, conf.Mylock, conf.TBalanceOfWBNB_code, arg.ChainID, amountPerTx, arg.GasPrice, arg.GasLimit)
+			bundle, err = rootAccount.TransferBNB(rootAccount.Nonce, conf.Mylock, conf.TbalanceOfWBNBCode, arg.ChainID, amountPerTx, arg.GasPrice, arg.GasLimit)
 			// fmt.Printf("noList revert txHash %v\n", bundle.Hash().Hex())
 			revertTxHashes = append(revertTxHashes, bundle.Hash())
 
 		} else if revertTxs[i] == "RevertListAdd" {
 			// 发送会revert的交易，但不加入revertList
-			bundle, err = rootAccount.TransferBNB(rootAccount.Nonce, conf.Mylock, TotallysplWBNB_code, arg.ChainID, amountPerTx, arg.GasPrice, arg.GasLimit)
+			bundle, err = rootAccount.TransferBNB(rootAccount.Nonce, conf.Mylock, conf.TotallySplWBNBCode, arg.ChainID, amountPerTx, arg.GasPrice, arg.GasLimit)
 			// fmt.Printf("noList revert txHash %v\n", bundle.Hash().Hex())
 
 		} else {
