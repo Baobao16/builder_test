@@ -161,16 +161,16 @@ func Test_p0_running_attack(t *testing.T) {
 		defer utils.ResetLockContract(t, conf.Mylock, testcase.ResetData)
 
 		t.Log("[Step-1] Root User Expose mem_pool transaction tx0 tx1")
-		tx0, rh := utils.SendLockMempool(conf.RootPk4, conf.WBNB, conf.TransferWBNB_code, conf.Low_gas, true, true)
+		tx0, rh := utils.SendLockMempool(conf.RootPk4, conf.Mylock, testcase.UseGas, conf.Med_gas, true, true)
 		tx01, revertHash := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockData, conf.Low_gas, true, true)
 		tx02 := append(tx01, tx0...)
 		revertHash = append(revertHash, rh[0])
 
 		t.Log("[Step-2] User 1 bundle [tx0, tx1, tx2], tx2 not allowed to revert.")
-		bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk2, conf.Mylock, testcase.UnlockStrData, conf.SendA, conf.Low_gas, tx02, revertHash, 0)
+		bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk2, conf.Mylock, testcase.UnlockStrData, conf.SendA, conf.Med_gas, tx02, revertHash, 0)
 
 		t.Log("[Step-3] User 2 bundle [tx1, tx3], tx3 not allowed to revert.")
-		bundleArgs2, usr2Arg, txs2 := testcase.AddUserBundle(conf.RootPk3, conf.Mylock, testcase.UnlockMoreData, conf.SendA, conf.Low_gas, tx01, revertHash, 0)
+		bundleArgs2, usr2Arg, txs2 := testcase.AddUserBundle(conf.RootPk3, conf.Mylock, testcase.UnlockMoreData, conf.SendA, conf.High_gas, tx01, revertHash, 0)
 
 		t.Log("[Step-4] User 1 and User 2 send bundles.")
 		cbn := testcase.SendBundles(t, usr1Arg, usr2Arg, bundleArgs1, bundleArgs2)
@@ -228,10 +228,10 @@ func Test_p0_gasLimit_deception(t *testing.T) {
 		txs, _ := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockData, conf.Low_gas, false, true)
 
 		t.Log("[Step-2] User 1 bundle [tx1, tx2], tx2 not allowed to revert.")
-		bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk2, conf.Mylock, testcase.UnlockDeData, conf.SendA, conf.Low_gas, txs, nil, 0)
+		bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk2, conf.Mylock, testcase.UnlockDeMoreData, conf.SendA, conf.Med_gas, txs, nil, 0)
 
 		t.Log("[Step-3] User 2 bundle [tx1, tx3], tx3 not allowed to revert.")
-		bundleArgs2, usr2Arg, txs2 := testcase.AddUserBundle(conf.RootPk3, conf.Mylock, testcase.UnlockDesData, conf.SendA, conf.High_gas, txs, nil, 0)
+		bundleArgs2, usr2Arg, txs2 := testcase.AddUserBundle(conf.RootPk3, conf.Mylock, testcase.UnlockDeStrData, conf.SendA, conf.High_gas, txs, nil, 0)
 
 		t.Log("[Step-4] User 1 and User 2 send bundles.")
 		cbn := testcase.SendBundles(t, usr1Arg, usr2Arg, bundleArgs1, bundleArgs2)
@@ -250,10 +250,10 @@ func Test_p0_gasLimit_deception(t *testing.T) {
 		txs, revertHash := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockFData, conf.Low_gas, true, true)
 
 		t.Log("[Step-2] User 1 bundle [tx1, tx2], tx2 not allowed to revert.")
-		bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk2, conf.Mylock, testcase.UnlockDeData, conf.SendA, conf.Low_gas, txs, revertHash, 0)
+		bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk2, conf.Mylock, testcase.UnlockDeMoreData, conf.SendA, conf.Low_gas, txs, revertHash, 0)
 
 		t.Log("[Step-3] User 2 bundle [tx1, tx3], tx3 not allowed to revert.")
-		bundleArgs2, usr2Arg, txs2 := testcase.AddUserBundle(conf.RootPk3, conf.Mylock, testcase.UnlockDesData, conf.SendA, conf.High_gas, txs, revertHash, 0)
+		bundleArgs2, usr2Arg, txs2 := testcase.AddUserBundle(conf.RootPk3, conf.Mylock, testcase.UnlockDeStrData, conf.SendA, conf.High_gas, txs, revertHash, 0)
 
 		t.Log("[Step-4] User 1 and User 2 send bundles.")
 		cbn := testcase.SendBundles(t, usr1Arg, usr2Arg, bundleArgs1, bundleArgs2)

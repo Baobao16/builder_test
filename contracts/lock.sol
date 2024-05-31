@@ -13,6 +13,7 @@ contract Lock {
     uint256 val;
     address owner;
     uint256[10] useless;
+    uint256 x;
 
     constructor() {
         lk = 2;
@@ -25,10 +26,15 @@ contract Lock {
         }
     }
 
+    function useGas() internal {
+        while(gasleft() > 20000) {
+            x = x + 1;
+        }
+    }
+
 
     function unlock(uint256 v, string calldata str) public payable returns (string memory) {
-        for(uint i = 0; i < 100; i++)
-            useless[i] = i;
+
         // 1.检查锁定状态：如果 lk 的值不为1（已锁定状态），则回滚（revert）交易；在 lk 的值为 1 时，执行锁定操作
         // 2.将lk标识位置为 1
         if (keccak256(abi.encodePacked(str)) == keccak256(abi.encodePacked("more"))) {
@@ -38,15 +44,35 @@ contract Lock {
             val = v;
             lk = 2;
             owner = msg.sender;
-            return str;
+
         }else{
             revert("unlock error: locked");
         }
+        useGas();
+        return str;
+    }
+
+    function unlock_de(uint256 v, string calldata str) public payable returns (string memory) {
+
+        // 1.检查锁定状态：如果 lk 的值不为1（已锁定状态），则回滚（revert）交易；在 lk 的值为 1 时，执行锁定操作
+        // 2.将lk标识位置为 1
+        // GaseUsed 不受GasLimit影响
+        if (keccak256(abi.encodePacked(str)) == keccak256(abi.encodePacked("more"))) {
+            increaseGasUsed();
+        }
+        if(lk == 1){
+            val = v;
+            lk = 2;
+            owner = msg.sender;
+
+        }else{
+            revert("unlock error: locked");
+        }
+        return str;
     }
 
     function fakelock(uint256 v, string calldata str) public payable  returns (string memory) {
-        for(uint i = 0; i < 100; i++)
-            useless[i] = i;
+
         if (keccak256(abi.encodePacked(str)) == keccak256(abi.encodePacked("more"))) {
             increaseGasUsed();
         }
@@ -55,29 +81,32 @@ contract Lock {
         if(lk == 1){
             val = v;
             owner = msg.sender;
-            return str;
+
         }else{
             revert("fakelock error: locked");
         }
+        useGas();
+        return str;
     }
 
     function lock(uint v, bool t) public returns (uint256){
-        for(uint i = 0; i < 100; i++)
-            useless[i ] = i;
+
         // 修改 lk 标识值
         if (t==true) {
             lk = v;
-            return lk;
+
         }else{
             revert("lock error: locked");
         }
+        useGas();
+        return lk;
     }
 
     function reset() public payable  returns (uint256) {
-        for(uint i = 0; i < 10; i++)
-            useless[i ] = i;
+
         // 调用合约 将lk标识位恢复至初始状态
         lk = 2;
+        useGas();
         return lk;
     }
 

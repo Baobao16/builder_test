@@ -22,10 +22,11 @@ var LockFData = utils.GeneEncodedData(LockABI, "lock", 1, false)
 
 var UnlockStrData = utils.GeneEncodedData(LockABI, "unlock", 1, "str")
 var UnlockMoreData = utils.GeneEncodedData(LockABI, "unlock", 1, "more")
-var UnlockDeData = utils.GeneEncodedData(LockABI, "unlock_de", 1, "more") //"0x1d58c7"1923271
-var UnlockDesData = utils.GeneEncodedData(LockABI, "unlock_de", 1, "str")
+var UnlockDeMoreData = utils.GeneEncodedData(LockABI, "unlock_de", 1, "more") //"0x1d58c7"1923271
+var UnlockDeStrData = utils.GeneEncodedData(LockABI, "unlock_de", 1, "str")
 var FakelockStrData = utils.GeneEncodedData(LockABI, "fakelock", 1, "str")
 var FakelockMoreData = utils.GeneEncodedData(LockABI, "fakelock", 1, "more")
+var UseGas = utils.GeneEncodedData(LockABI, "increaseGasUsed")
 var (
 	Args           = make([]*sendBundle.BidCaseArg, 2)
 	UsrList        = make([]utils.TxStatus, 3)

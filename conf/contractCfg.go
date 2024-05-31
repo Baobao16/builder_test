@@ -10,7 +10,7 @@ import (
 // RouterV2: 0xE1f45ef433b2ADF7583917974543a2df2161Dd6c
 // Token: 0x429B2BEa55c0F2a30318d21D029EDc847977344F
 var (
-	Mylock    = common.HexToAddress("0xd324788cb01def44a4f89d775718e577bb4553c1") // 0514new
+	Mylock    = common.HexToAddress("0x87b2a2fed66eb5ad57d5c02483e812d731e44da7") // 0514new
 	WBNB      = common.HexToAddress("0xE5454b639B241c07Fc0d55b23690F9CeE18b7E4f")
 	RouterV2  = common.HexToAddress("0xE1f45ef433b2ADF7583917974543a2df2161Dd6c")
 	Token     = common.HexToAddress("0x429B2BEa55c0F2a30318d21D029EDc847977344F")

@@ -2,6 +2,7 @@ package bundles
 
 import (
 	"fmt"
+	"github.com/xkwang/testcase"
 	"log"
 	"math/big"
 	"math/rand"
@@ -31,6 +32,12 @@ func Test_p0_sendBundle(t *testing.T) {
 	t.Run("sendValidBundle_tx", func(t *testing.T) {
 		// bundle 中均为合法转账交易
 		t.Log("Start sendBundle \n")
+		//conf.Mylock, testcase.UnlockDeMoreData, conf.SendA, conf.Low_gas,
+		arg.Contract = conf.Mylock
+		//arg.Data = testcase.LockData
+		arg.Data = testcase.UnlockDeStrData
+		arg.TxCount = 1
+		arg.GasLimit = conf.Med_gas
 		txs, bundleArgs, _ := sendBundle.ValidBundle_NilPayBidTx_1(&arg)
 		cbn := utils.SendBundlesMined(t, arg, bundleArgs)
 		utils.WaitMined(txs, cbn)

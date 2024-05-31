@@ -29,6 +29,13 @@
 		"type": "function"
 	},
 	{
+		"inputs": [],
+		"name": "increaseGasUsed",
+		"outputs": [],
+		"stateMutability": "pure",
+		"type": "function"
+	},
+	{
 		"inputs": [
 			{
 				"internalType": "uint256",
