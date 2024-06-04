@@ -58,5 +58,5 @@ func CheckTransactionIndex(t *testing.T, tx types.Transaction, expectedIndex str
 	response := utils.GetTransactionReceipt(tx)
 	txIndex := response.Result.TransactionIndex
 	assert.Equal(t, txIndex, expectedIndex)
-	log.Printf("Transaction %v index: %v", tx.Hash().Hex(), txIndex)
+	log.Printf("Transaction %v index: %v,gasUsed %v", tx.Hash().Hex(), txIndex, response.Result.GasUsed)
 }

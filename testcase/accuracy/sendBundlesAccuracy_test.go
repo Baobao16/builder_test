@@ -5,6 +5,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/xkwang/conf"
+	"github.com/xkwang/sendBundle"
 	"github.com/xkwang/testcase"
 	"github.com/xkwang/utils"
 	"log"
@@ -47,10 +48,69 @@ func ExposeMempoolTransactions(pk1 string, data1 []byte, pk2 string, data2 []byt
 	return append(tx1, tx2...), append(revertHash1, revertHash2...)
 }
 
+func TestMyFunction(t *testing.T) {
+	const repeatCount = 20 // 设置要重复的次数
+
+	for i := 0; i < repeatCount; i++ {
+		t.Run("Iteration"+strconv.Itoa(i), func(t *testing.T) {
+			// 你的测试逻辑在这里
+			// 例如，调用你的函数并断言结果
+			Test_P1_value(t)
+			//Test_p0_back_run(t)
+			//expected := "expected result"
+			//if result != expected {
+			//	t.Errorf("iteration %d: expected %s, got %s", i, expected, result)
+			//}
+		})
+	}
+}
+
+func Test_P1_value(t *testing.T) {
+	t.Run("value", func(t *testing.T) {
+		t.Log("[Step-1] Root User1 Expose Mem_pool transaction tx1 .\n")
+		tx1, _ := utils.SendLockMempool(conf.RootPk, conf.WBNB, conf.TransferWBNBCode, conf.LowGas, false, true)
+		time.Sleep(100 * time.Millisecond)
+		t.Log("[Step-2] Root User2 SendBundle [tx1, tx2] .\n")
+		bundleArgs, arg, tx2 := testcase.AddUserBundle(conf.RootPk2, conf.WBNB, conf.TransferWBNBCode, conf.SendA, conf.LowGas, tx1, nil, 0)
+		cbn := utils.SendBundlesMined(t, *arg, bundleArgs)
+		utils.WaitMined(tx2, cbn)
+		testcase.CheckTransactionIndex(t, *tx1[0], "0x0")
+		testcase.CheckTransactionIndex(t, *tx2[0], "0x1")
+	})
+}
+
+func chooseCurrentTime() {
+	usr := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferWBNBCode, conf.HighGas)
+	initialBlockNumber, err := usr.Client.BlockNumber(usr.Ctx)
+	if err != nil {
+		log.Fatalf("Failed to get current block number: %v", err)
+	}
+	log.Printf("Initial block number: %d", initialBlockNumber)
+
+	for {
+		// 获取当前的区块高度
+		currentBlockNumber, err := usr.Client.BlockNumber(usr.Ctx)
+		if err != nil {
+			log.Printf("Failed to get current block number: %v", err)
+			time.Sleep(1 * time.Second)
+			continue
+		}
+
+		// 检查区块高度是否增加
+		if currentBlockNumber > initialBlockNumber {
+			log.Println("block number increase, begin to sendBundle")
+			break
+		}
+		// 等待一段时间，然后再次检查区块高度
+		time.Sleep(1 * time.Second)
+	}
+
+}
+
 func Test_p0_back_run(t *testing.T) {
 	t.Run("back_run_tx1_success", func(t *testing.T) {
 		defer utils.ResetLockContract(t, conf.Mylock, testcase.ResetData)
-
+		chooseCurrentTime()
 		t.Log("[Step-1] Root User Expose mem-pool transaction tx1\n")
 		txs, hs := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockData, conf.LowGas, false, true)
 
@@ -79,6 +139,7 @@ func Test_p0_back_run(t *testing.T) {
 
 	t.Run("back_run_tx1_failed", func(t *testing.T) {
 		defer utils.ResetLockContract(t, conf.Mylock, testcase.ResetData)
+		chooseCurrentTime()
 
 		t.Log("[Step-1] Root User Expose mem_pool transaction tx1")
 		txs, hs := utils.SendLockMempool(conf.RootPk, conf.Mylock, testcase.LockFData, conf.LowGas, true, true)
@@ -98,6 +159,27 @@ func Test_p0_back_run(t *testing.T) {
 
 		t.Log("[Step-5] Verify transactions.")
 		utils.VerifyTx(t, cbn, testcase.UsrList)
+	})
+
+	t.Run("sendBundle", func(t *testing.T) {
+		// tx1 在revertList 且会revert tx2随意
+		arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferWBNBCode, conf.HighGas)
+		arg.TxCount = 2
+		arg.RevertList = []int{0}
+		var txBlk = make([]string, 0)
+		// 发送并验证交易
+		txs, bundleArgs, _ := sendBundle.ValidBundle_NilPayBidTx_1(&arg)
+		cbn := utils.SendBundlesMined(t, arg, bundleArgs)
+		utils.WaitMined(txs, cbn)
+		blkN1 := utils.CheckBundleTx(t, *txs[0], true, conf.TxFailed)
+		txBlk = append(txBlk, blkN1)
+
+		blkN2 := utils.CheckBundleTx(t, *txs[1], true, conf.TxSucceed)
+		txBlk = append(txBlk, blkN2)
+
+		if !utils.TxInSameBlk(txBlk) {
+			t.Fatalf("Transactions are not in the same block")
+		}
 	})
 }
 

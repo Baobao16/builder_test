@@ -21,13 +21,15 @@ var (
 	TotallySplWBNBCode  = common.Hex2Bytes("18160ddd")
 	AllowanceRouterCode = common.Hex2Bytes("3e5beab9000000000000000000000000e1f45ef433b2adf7583917974543a2df2161dd6c")
 
-	// RcvAddress 贿赂地址
-	RcvAddress   = common.HexToAddress("0x33Af2388136bf65b4b6413A1951391F89663c644")
+	RcvAddress   = common.HexToAddress("0x33Af2388136bf65b4b6413A1951391F89663c644") //blkrz收账地址
+	C48Address   = common.HexToAddress("0x12AE9700eD0C8BEC37162b8a6883d097C8AbEc34") //48club账户地址
+	MidAddress   = common.HexToAddress("0x116D2f846ada0dBd7Fb5BEdc80BADA210b55B911") //中间账户地址
 	BribeAddress = common.HexToAddress("0x11c40ecf278CB259696b1f1E359f8682eE425522")
 	SysAddress   = common.HexToAddress("0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE")
 	// Coinbase = common.HexToAddress("0x7d83033eFaE53d3250cff2d9e39E4a63fdEd9712")
 
-	MinGasPrice = int64(1e9) // 小于1Gwei 的gasPrice会失败
+	MinGasPrice = int64(1e9)  // 小于1Gwei 的gasPrice会失败
+	MedGasPrice = int64(1e10) // 小于1Gwei 的gasPrice会失败
 	SendA       = big.NewInt(0)
 	HighGas     = big.NewInt(3e6)
 	MedGas      = big.NewInt(2e6)

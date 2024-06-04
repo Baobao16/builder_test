@@ -37,6 +37,7 @@ func Test_p0_value_preservation(t *testing.T) {
 		{betT, betF, true, false, true},  // 链上交易顺序：[tx1]
 		{betF, betT, true, true, false},  // 链上交易顺序：[tx1,tx2]
 		{betF, betF, true, false, false}, // 链上交易顺序：[tx1]
+		//{betF, betF, true, false, false}, // revert [tx1] tx2 预期上链
 	}
 	for index, tc := range testCases {
 		t.Run("backRun_value_preservation"+strconv.Itoa(index), func(t *testing.T) {
@@ -220,16 +221,17 @@ func Test_p0_BundleBribe(t *testing.T) {
 		txOrder         []string
 		balanceIncrease *big.Int
 	}{
-		{big.NewInt(150 * 1e9), big.NewInt(100 * 1e9), conf.SysAddress, conf.BribeAddress, []string{"0x1", "0x0"}, big.NewInt(10000000000)},
-		{big.NewInt(210 * 1e9), big.NewInt(100 * 1e9), conf.SysAddress, conf.BribeAddress, []string{"0x0", "0x1"}, big.NewInt(10000000000)},
-		{big.NewInt(110 * 1e9), big.NewInt(100 * 1e9), conf.BribeAddress, conf.BribeAddress, []string{"0x0", "0x1"}, big.NewInt(21000000000)},
+		{big.NewInt(15 * 1e10), big.NewInt(1e11), conf.SysAddress, conf.BribeAddress, []string{"0x1", "0x0"}, big.NewInt(1e10)},
+		{big.NewInt(21 * 1e10), big.NewInt(1e11), conf.SysAddress, conf.BribeAddress, []string{"0x0", "0x1"}, big.NewInt(1e10)},
+		{big.NewInt(11 * 1e10), big.NewInt(1e11), conf.BribeAddress, conf.BribeAddress, []string{"0x0", "0x1"}, big.NewInt(21e9)},
 	}
 
 	for index, tc := range testCases {
 		t.Run("backRun_value_preservation_case"+strconv.Itoa(index), func(t *testing.T) {
 			utils.GetAccBalance(conf.BribeAddress)
 			Balance1 := utils.GetAccBalance(conf.RcvAddress)
-
+			utils.GetAccBalance(conf.C48Address)
+			utils.GetAccBalance(conf.MidAddress)
 			var txs types.Transactions
 			t.Log("[Step-1]  User1 SendBundle transaction tx1 \n")
 			usr1Arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferWBNBCode, conf.HighGas)
@@ -258,7 +260,39 @@ func Test_p0_BundleBribe(t *testing.T) {
 			result := new(big.Int)
 			result.Sub(Balance2, Balance1)
 			assert.Equal(t, result, tc.balanceIncrease)
+			utils.GetAccBalance(conf.C48Address)
+			utils.GetAccBalance(conf.MidAddress)
 		})
 	}
+
+}
+
+func Test_p0_BundleLedger(t *testing.T) {
+	utils.GetAccBalance(conf.C48Address)
+	utils.GetAccBalance(conf.MidAddress)
+	Balance1 := utils.GetAccBalance(conf.RcvAddress)
+	t.Log("[Step-1] Blk1 Root User Expose Mem_pool transaction  gasFee 100Gwei . \n")
+	tx1, _ := utils.SendLockMempool(conf.RootPk, conf.WBNB, conf.TransferWBNBCode, conf.MedGas, false, true)
+	utils.BlockHeightIncreased(t)
+	utils.CheckBundleTx(t, *tx1[0], true, conf.TxSucceed)
+
+	t.Log("[Step-2] Blk2 bundle with 0.1	ether bribe .\n")
+	arg := utils.UserTx(conf.RootPk4, conf.SpecialOp, conf.SpecialOpBb, conf.HighGas)
+	bribeFee := big.NewInt(0.01 * 1e18)
+	tmp := arg.Contract
+	arg.Contract = conf.SysAddress
+	txs1 := make([]*types.Transaction, 0)
+	txb, revertTxHashes := sendBundle.GenerateBNBTxs(&arg, bribeFee, arg.Data, 1)
+	arg.Contract = tmp
+	bundleArgs2 := utils.AddBundle(txb, txs1, revertTxHashes, 0)
+	utils.SendBundlesMined(t, arg, bundleArgs2)
+
+	Balance2 := utils.GetAccBalance(conf.RcvAddress)
+	testcase.CheckTransactionIndex(t, *txb[0], "0x0")
+	result := new(big.Int)
+	result.Sub(Balance2, Balance1)
+	log.Printf("result %v", result)
+	utils.GetAccBalance(conf.C48Address)
+	utils.GetAccBalance(conf.MidAddress)
 
 }

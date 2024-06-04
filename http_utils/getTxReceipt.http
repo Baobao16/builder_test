@@ -22,7 +22,7 @@ Content-Type: application/json
   "jsonrpc": "2.0",
   "method": "eth_getTransactionReceipt",
   "params": [
-    "0xc78a6812237479536684f190e957f571106014317c1e09c1e88885ddaf6dc28a"
+    "0x6454e1ec67ebb128e365182d779cbd6d0ccf6af39adc007f90bcf01b773bc5a8"
   ]
 }
 

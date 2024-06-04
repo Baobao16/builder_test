@@ -162,15 +162,11 @@ func SendLockMempool(usr string, contract common.Address, data []byte, gasLimit 
 	return tx, revertHash
 
 }
-
 func ConcurSendBundles(t *testing.T, args []*sendBundle.BidCaseArg, bundleArgsList []*types.SendBundleArgs) uint64 {
 	// 获取当前的区块号
-	currentBlockNumber, err := args[0].Client.BlockNumber(args[0].Ctx)
-	if err != nil {
-		t.Fatalf("Failed to get current block number: %v", err)
-	}
 
 	log.Println("Sending bundles and waiting for block number to increase")
+	currentBlockNumber, _ := args[0].Client.BlockNumber(args[0].Ctx)
 
 	var wg sync.WaitGroup
 
@@ -335,7 +331,7 @@ func GetAccBalance(address common.Address) *big.Int {
 		log.Fatalf("Failed to retrieve account balance: %v", err)
 	}
 	// 打印账户余额
-	fmt.Printf("Balance: %s\n", balance.String())
+	fmt.Printf("Address %v Balance: %s \n", address, balance.String())
 	return balance
 
 }

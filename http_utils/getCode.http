@@ -24,7 +24,7 @@ Content-Type: application/json
   "id": 1,
   "jsonrpc": "2.0",
   "params": [
-    "0x05a9d51810475f47c914b97268ac53198da89d68",
+    "0x035b6E463A445aF6d12Dbf9b2D0150c15Be5b357",
     "latest"
   ],
   "method": "eth_getCode"
