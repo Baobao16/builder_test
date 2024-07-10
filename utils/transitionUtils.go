@@ -49,7 +49,7 @@ func CreateClient(url string) *ethclient.Client {
 	return client
 }
 
-func UserTx(rootName string, contract common.Address, data []byte, gasLimit *big.Int) sendBundle.BidCaseArg {
+func UserTx(rootName string, contract common.Address, data []byte, gasLimit *big.Int, gasPrice *big.Int) sendBundle.BidCaseArg {
 	ctx := context.Background()
 
 	rootPk := rootName
@@ -78,9 +78,10 @@ func UserTx(rootName string, contract common.Address, data []byte, gasLimit *big
 		TxCount:       3,
 		Contract:      contract,
 		Data:          data,
-		GasPrice:      big.NewInt(conf.MinGasPrice),
-		GasLimit:      gasLimit,
-		SendAmount:    big.NewInt(0),
+		GasPrice:      gasPrice,
+		//GasPrice:      big.NewInt(conf.MinGasPrice),
+		GasLimit:   gasLimit,
+		SendAmount: big.NewInt(0),
 	}
 }
 
@@ -141,8 +142,8 @@ func IsEmptyField(result ResultB) bool {
 	return false
 }
 
-func SendLockMempool(usr string, contract common.Address, data []byte, gasLimit *big.Int, revert bool, send bool) (types.Transactions, []common.Hash) {
-	usrArg := UserTx(usr, contract, data, gasLimit)
+func SendLockMempool(usr string, contract common.Address, data []byte, gasLimit *big.Int, gasPrice *big.Int, revert bool, send bool) (types.Transactions, []common.Hash) {
+	usrArg := UserTx(usr, contract, data, gasLimit, gasPrice)
 	if revert {
 		log.Printf("mem_pool transaction  will in bundle RevertList . ")
 		usrArg.RevertListNormal = []int{0} // 当前交易被记入RevertList
@@ -242,7 +243,7 @@ func GeneEncodedData(con Contract, method string, args ...interface{}) []byte {
 
 func ResetLockContract(t *testing.T, contract common.Address, data []byte) {
 	t.Log("Root User reset Contract lock")
-	usrArg := UserTx(conf.RootPk, contract, data, conf.HighGas)
+	usrArg := UserTx(conf.RootPk5, contract, data, conf.HighGas, big.NewInt(conf.MinGasPrice))
 	usrArg.TxCount = 1
 
 	txs, bundleArgs, _ := sendBundle.ValidBundle_NilPayBidTx_1(&usrArg)

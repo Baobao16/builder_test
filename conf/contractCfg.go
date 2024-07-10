@@ -16,9 +16,11 @@ var (
 	Token               = common.HexToAddress("0x429B2BEa55c0F2a30318d21D029EDc847977344F")
 	SpecialOp           = common.HexToAddress("0x05A9d51810475F47C914b97268ac53198dA89D68")
 	ValueCp             = common.HexToAddress("0x035b6E463A445aF6d12Dbf9b2D0150c15Be5b357")
+	Owner               = common.HexToAddress("0xfFEc66fAad4E95D91eC2e853ed3A4cDe58985e98")
 	TransferBNBCode     = common.Hex2Bytes("a6f9dae10000000000000000000000007b09bb26c9fef574ea980a33fc71c184405a4023")
 	TBalanceOfWBNBCode  = common.Hex2Bytes("70a08231000000000000000000000000e5454b639b241c07fc0d55b23690f9cee18b7e4f")
 	TotallySplWBNBCode  = common.Hex2Bytes("18160ddd")
+	GetOwnerCode        = common.Hex2Bytes("893d20e8")
 	AllowanceRouterCode = common.Hex2Bytes("3e5beab9000000000000000000000000e1f45ef433b2adf7583917974543a2df2161dd6c")
 
 	RcvAddress   = common.HexToAddress("0x33Af2388136bf65b4b6413A1951391F89663c644") //blkrz收账地址
@@ -37,12 +39,15 @@ var (
 	LockPath    = "../../abi/ugLock.json"
 	SpePath     = "../../abi/specialOp.json"
 	ValueCpPath = "../../abi/ValueCp.json"
+	OwnerPath   = "../../abi/Owner.json"
 
 	SpecialOpBb = common.Hex2Bytes("1c6dc3c0")
 	SpecialOpCb = common.Hex2Bytes("e6f1f7510000000000000000000000007d83033efae53d3250cff2d9e39e4a63fded9712")
 	// SpecialopCb        = common.Hex2Bytes("e6f1f7510000000000000000000000000000000000000000000000000000000000000000")
-	TransferWBNBCode   = common.Hex2Bytes("1a695230000000000000000000000000e5454b639b241c07fc0d55b23690f9cee18b7e4f") //"0x6e13" 28179
-	TbalanceOfWBNBCode = common.Hex2Bytes("70a08231000000000000000000000000e5454b639b241c07fc0d55b23690f9cee18b7e4f")
+	TransferWBNBCode     = common.Hex2Bytes("1a695230000000000000000000000000e5454b639b241c07fc0d55b23690f9cee18b7e4f") //"0x6e13" 28179
+	TbalanceOfWBNBCode   = common.Hex2Bytes("70a08231000000000000000000000000e5454b639b241c07fc0d55b23690f9cee18b7e4f")
+	ChangeOwner_deployer = common.Hex2Bytes("a6f9dae10000000000000000000000006c85f133fa06fe5eb185743fb6c79f4a7cb9c076")
+	ChangeOwner_other    = common.Hex2Bytes("a6f9dae1000000000000000000000000b0b10b09780aa6a315158ef724404aa1497e9e6e")
 
 	TxSucceed = "0x1"
 	TxFailed  = "0x0"
