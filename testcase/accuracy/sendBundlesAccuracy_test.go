@@ -48,22 +48,22 @@ func ExposeMempoolTransactions(pk1 string, data1 []byte, pk2 string, data2 []byt
 	return append(tx1, tx2...), append(revertHash1, revertHash2...)
 }
 
-func TestMyFunction(t *testing.T) {
-	const repeatCount = 20 // 设置要重复的次数
-
-	for i := 0; i < repeatCount; i++ {
-		t.Run("Iteration"+strconv.Itoa(i), func(t *testing.T) {
-			// 你的测试逻辑在这里
-			// 例如，调用你的函数并断言结果
-			Test_P1_value(t)
-			//Test_p0_back_run(t)
-			//expected := "expected result"
-			//if result != expected {
-			//	t.Errorf("iteration %d: expected %s, got %s", i, expected, result)
-			//}
-		})
-	}
-}
+//func TestMyFunction(t *testing.T) {
+//	const repeatCount = 20 // 设置要重复的次数
+//
+//	for i := 0; i < repeatCount; i++ {
+//		t.Run("Iteration"+strconv.Itoa(i), func(t *testing.T) {
+//			// 你的测试逻辑在这里
+//			// 例如，调用你的函数并断言结果
+//			Test_P1_value(t)
+//			//Test_p0_back_run(t)
+//			//expected := "expected result"
+//			//if result != expected {
+//			//	t.Errorf("iteration %d: expected %s, got %s", i, expected, result)
+//			//}
+//		})
+//	}
+//}
 
 func Test_P1_value(t *testing.T) {
 	t.Run("value", func(t *testing.T) {
@@ -405,7 +405,7 @@ func Test_p1_conflict_mb(t *testing.T) {
 		t.Log("[Step-2] User 1 bundle [tx0].")
 		userArg := utils.UserTx(conf.RootPk5, conf.Mylock, testcase.LockData, conf.HighGas, big.NewInt(conf.MinGasPrice))
 		bundleArgs := utils.AddBundle(tx0, txs, revertTx, 0)
-		err := userArg.BuilderClient.SendBundle(userArg.Ctx, bundleArgs)
+		_, err := userArg.BuilderClient.SendBundle(userArg.Ctx, *bundleArgs)
 		if err != nil {
 			log.Println("failed: ", err.Error())
 		}
@@ -436,7 +436,7 @@ func Test_p1_conflict_mb(t *testing.T) {
 			t.Log("[Step-3] User3 send bundle [tx2, tx1].\n")
 			usr1Arg := utils.UserTx(conf.RootPk3, conf.Mylock, testcase.UnlockMoreData, conf.HighGas, big.NewInt(conf.MinGasPrice))
 			bundleArgs1 := utils.AddBundle(tx2, tx1, revertHash, 0)
-			err := usr1Arg.BuilderClient.SendBundle(usr1Arg.Ctx, bundleArgs1)
+			_, err := usr1Arg.BuilderClient.SendBundle(usr1Arg.Ctx, *bundleArgs1)
 			if err != nil {
 				log.Println(" failed: ", err.Error())
 			}

@@ -21,6 +21,8 @@ var (
 	RootPk4   = *root4PrivateKey
 	RootPk5   = *root5PrivateKey
 	RootPk6   = *root6PrivateKey
+	RootPk7   = *root7PrivateKey
+	RootPk8   = *root8PrivateKey
 	BobPk     = *rootPrivateKey
 	BuilderPk = *BuilderPrivateKey
 	//PriKey    = "0x199e3Bfb54f4aAa9D67d1BB56429c5ef9D1A2A91"
@@ -51,13 +53,13 @@ var (
 		"08560159b1ad148be0c695b511a6bdaa91562158f36ea88ef48ea8355ee64755",
 		"private key of root6 account") // 0x199e3Bfb54f4aAa9D67d1BB56429c5ef9D1A2A91
 
-	// root6PrivateKey = flag.String("rootpk6",
-	// 	"50b9bb6c14ad320ec12b3e21e16296a446059a2453bb9b323a00eb2e051c5eb5",
-	// 	"private key of root6 account")
+	root8PrivateKey = flag.String("rootpk8",
+		"50b9bb6c14ad320ec12b3e21e16296a446059a2453bb9b323a00eb2e051c5eb5",
+		"private key of root6 account")
 
-	// root7PrivateKey = flag.String("rootpk7",
-	// 	"8fb1b911b16cc94cb2edb8b707c782121c2cf70cd71f2adf2e8bb52bb967a2c4",
-	// 	"private key of root7 account")
+	root7PrivateKey = flag.String("rootpk7",
+		"8fb1b911b16cc94cb2edb8b707c782121c2cf70cd71f2adf2e8bb52bb967a2c4",
+		"private key of root7 account")
 
 	BuilderPrivateKey = flag.String("builderpk",
 		"7b94e64fc431b0daa238d6ed8629f3747782b8bc10fb8a41619c5fb2ba55f4e3",

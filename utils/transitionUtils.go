@@ -173,7 +173,7 @@ func ConcurSendBundles(t *testing.T, args []*sendBundle.BidCaseArg, bundleArgsLi
 
 	sendBundle := func(i int) {
 		defer wg.Done()
-		err := args[i].BuilderClient.SendBundle(args[i].Ctx, bundleArgsList[i])
+		_, err := args[i].BuilderClient.SendBundle(args[i].Ctx, *bundleArgsList[i])
 		if err != nil {
 			log.Printf("Sending bundle %d failed: %v", i, err)
 			assert.Contains(t, err.Error(), conf.InvalidTx)
@@ -271,7 +271,7 @@ func SendBundlesMined(t *testing.T, usr sendBundle.BidCaseArg, bundleArgs *types
 	log.Println("Sending bundle and waiting for block number to increase")
 
 	// 发送捆绑交易
-	err = usr.BuilderClient.SendBundle(usr.Ctx, bundleArgs)
+	_, err = usr.BuilderClient.SendBundle(usr.Ctx, *bundleArgs)
 	if err != nil {
 		t.Fatalf("Failed to send bundle: %v", err)
 	}
@@ -319,9 +319,43 @@ func VerifyTx(t *testing.T, cbn uint64, usrList []TxStatus) {
 	TxInSameBlk(txBlk)
 }
 
+func VerifyTx6(t *testing.T, cbn uint64, usrList6 []TxStatus) {
+	WaitMined(usrList6[0].Txs, cbn)
+	txBlk := make([]string, 0)
+
+	verifyTransactions := func(txs types.Transactions, mined bool, result string, logMsg string) {
+		t.Log(logMsg)
+		for _, tx := range txs {
+			blkNum := CheckBundleTx(t, *tx, mined, result)
+			if mined {
+				txBlk = append(txBlk, blkNum)
+			}
+		}
+	}
+
+	t.Log("Verify Mem_pool tx.")
+	verifyTransactions(usrList6[0].Txs, usrList6[0].Mined, usrList6[0].Rst, "Verifying Mem_pool transactions.")
+
+	t.Log("Verify Bundle1 tx.")
+	verifyTransactions(usrList6[1].Txs, usrList6[1].Mined, usrList6[1].Rst, "Verifying Bundle1 transactions.")
+
+	t.Log("Verify Bundle2 tx.")
+	verifyTransactions(usrList6[2].Txs, usrList6[2].Mined, usrList6[2].Rst, "Verifying Bundle2 transactions.")
+	t.Log("Verify Mem_pool tx.")
+	verifyTransactions(usrList6[3].Txs, usrList6[3].Mined, usrList6[3].Rst, "Verifying Mem_pool transactions.")
+
+	t.Log("Verify Bundle1 tx.")
+	verifyTransactions(usrList6[4].Txs, usrList6[4].Mined, usrList6[4].Rst, "Verifying Bundle1 transactions.")
+
+	t.Log("Verify Bundle2 tx.")
+	verifyTransactions(usrList6[5].Txs, usrList6[5].Mined, usrList6[5].Rst, "Verifying Bundle2 transactions.")
+
+	TxInSameBlk(txBlk)
+}
+
 func GetAccBalance(address common.Address) *big.Int {
 	// 连接到 BSD 节点
-	client, err := ethclient.Dial(conf.Url_1)
+	client, err := ethclient.Dial(conf.Url)
 	if err != nil {
 		log.Fatalf("Failed to connect to the BSD node: %v", err)
 	}

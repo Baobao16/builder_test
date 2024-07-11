@@ -89,18 +89,18 @@ func Test_p0_bribe(t *testing.T) {
 
 		t.Log("[Step-1] Root User Expose Mem_pool transaction tx1\n")
 		lockData := utils.GeneEncodedData(testcase.LockABI, "lock", 1, true)
-		txs, _ := utils.SendLockMempool(conf.RootPk, conf.Mylock, lockData, conf.MedGas, big.NewInt(conf.MinGasPrice), false, true)
+		txs, _ := utils.SendLockMempool(conf.RootPk2, conf.Mylock, lockData, conf.MedGas, big.NewInt(conf.MinGasPrice), false, true)
 
-		t.Log("[Step-2] User 1 bundle [tx1, tx2], tx2 not allowed to revert.\n")
-		bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk, conf.ValueCp, testcase.UnlockMoreData, conf.SendA, conf.HighGas, txs, nil, 0)
+		t.Log("[Step-2] User 1 bundle-1 [tx1, tx2], tx2 not allowed to revert.\n")
+		bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk2, conf.ValueCp, testcase.UnlockMoreData, conf.SendA, conf.HighGas, txs, nil, 0)
 
-		t.Log("[Step-3] User 2 bundle [tx1, tx3], tx3 not allowed to revert.\n")
+		t.Log("[Step-3] User 2 bundle-2 [tx1, tx3], tx3 not allowed to revert.\n")
 		usr2Arg := utils.UserTx(conf.RootPk3, conf.Mylock, testcase.UnlockStrData, conf.MedGas, big.NewInt(conf.MinGasPrice))
 		txs2, _ := sendBundle.GenerateBNBTxs(&usr2Arg, usr2Arg.SendAmount, usr2Arg.Data, 1)
 
 		//  Bribe Transaction 【private tx】
 		arg := utils.UserTx(conf.RootPk4, conf.SpecialOp, conf.SpecialOpBb, conf.HighGas, big.NewInt(conf.MinGasPrice))
-		bribeFee := big.NewInt(1500000 * 1e9)
+		bribeFee := big.NewInt(1500000 * 1e9) //0.00015 * 1Gwei【贿赂成功】
 		log.Printf("bribe price is %v", bribeFee)
 		tmp := arg.Contract
 		arg.Contract = conf.SysAddress
@@ -217,6 +217,14 @@ func Test_p0_SpecialOp(t *testing.T) {
 
 func Test_p0_BundleBribe(t *testing.T) {
 	// 贿赂地址Balance永远是0
+	/*
+		贿赂地址：0x11c40ecf278CB259696b1f1E359f8682eE425522
+		接收地址：0x33Af2388136bf65b4b6413A1951391F89663c644
+		1.	两个bundle：[tx1], [tx2], tx1贿赂0.15 eth给systemAddress(ffe)，tx2贿赂0.1 eth给贿赂地址（5522），要求都出块，[tx2, tx1], 接收地址余额增加0.01
+		2.	两个bundle：[tx1], [tx2], tx1贿赂0.21 eth给systemAddress(ffe)，tx2贿赂0.1 eth给贿赂地址（5522），要求都出块，[tx1, tx2], 接收地址余额增加0.01
+		3.	两个bundle：[tx1], [tx2], tx1贿赂0.11 eth给贿赂地址(5522)，tx2贿赂0.1 eth给贿赂地址（5522），要求都出块，[tx1, tx2], 接收地址余额增加0.021
+			之前测试systemAddress的用例，贿赂价格变为一半，贿赂给贿赂地址，要求结果不变
+	*/
 	testCases := []struct {
 		bribe1          *big.Int
 		bribe2          *big.Int
@@ -238,7 +246,7 @@ func Test_p0_BundleBribe(t *testing.T) {
 			utils.GetAccBalance(conf.MidAddress)
 			var txs types.Transactions
 			t.Log("[Step-1]  User1 SendBundle transaction tx1 \n")
-			usr1Arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferWBNBCode, conf.HighGas, big.NewInt(conf.MinGasPrice))
+			usr1Arg := utils.UserTx(conf.RootPk3, conf.WBNB, conf.TransferWBNBCode, conf.HighGas, big.NewInt(conf.MinGasPrice))
 			tmp := usr1Arg.Contract
 			usr1Arg.Contract = tc.add1
 			txs1, revertTxHashes := sendBundle.GenerateBNBTxs(&usr1Arg, tc.bribe1, usr1Arg.Data, 1)
@@ -264,8 +272,8 @@ func Test_p0_BundleBribe(t *testing.T) {
 			result := new(big.Int)
 			result.Sub(Balance2, Balance1)
 			assert.Equal(t, result, tc.balanceIncrease)
-			utils.GetAccBalance(conf.C48Address)
-			utils.GetAccBalance(conf.MidAddress)
+			//utils.GetAccBalance(conf.C48Address)
+			//utils.GetAccBalance(conf.MidAddress)
 		})
 	}
 
@@ -370,4 +378,66 @@ func Test_P1_comValue(t *testing.T) {
 
 	})
 
+}
+
+func Test_P1_multiBundles(t *testing.T) {
+	/*
+		bundle1   [tx1 private transfer, tx1' bribe-0.01 ]
+		bundle2   [tx2 private transfer, tx2' bribe-0.01 ]
+		bundle3   [tx1, tx2 , tx3' bribe-0.15 ]
+		tx3 mempool transfer
+		Expected: tx1, tx1', tx2, tx2', tx3
+	*/
+	t.Run("multiBundles", func(t *testing.T) {
+		t.Log("[Step-1]  User1 SendBundle transaction tx1 and bribe tx_1 \n")
+		usr1Arg := utils.UserTx(conf.RootPk2, conf.WBNB, conf.TransferWBNBCode, conf.MedGas, big.NewInt(conf.MinGasPrice))
+		tx1, _ := sendBundle.GenerateBNBTxs(&usr1Arg, usr1Arg.SendAmount, usr1Arg.Data, 1)
+		//  Bribe Transaction 【private tx】
+		arg := utils.UserTx(conf.RootPk3, conf.SpecialOp, conf.SpecialOpBb, conf.HighGas, big.NewInt(conf.MinGasPrice))
+		tmp := arg.Contract
+		arg.Contract = conf.SysAddress
+		tx1b, revertTxHashes := sendBundle.GenerateBNBTxs(&arg, big.NewInt(1e8*1e9), arg.Data, 1)
+		arg.Contract = tmp
+
+		bundleArgs1 := utils.AddBundle(tx1, tx1b, revertTxHashes, 0)
+
+		t.Log("[Step-2]  User2 SendBundle transaction tx2 and bribe tx_2 \n")
+		usr2Arg := utils.UserTx(conf.RootPk4, conf.WBNB, conf.TransferWBNBCode, conf.MedGas, big.NewInt(conf.MinGasPrice))
+		tx2, _ := sendBundle.GenerateBNBTxs(&usr2Arg, usr2Arg.SendAmount, usr2Arg.Data, 1)
+
+		//  Bribe Transaction 【private tx】
+		arg2 := utils.UserTx(conf.RootPk5, conf.SpecialOp, conf.SpecialOpBb, conf.HighGas, big.NewInt(conf.MinGasPrice))
+		tmp = arg2.Contract
+		arg2.Contract = conf.SysAddress
+		tx2b, revertTxHashes := sendBundle.GenerateBNBTxs(&arg2, big.NewInt(1e8*1e9), arg2.Data, 1)
+		arg2.Contract = tmp
+
+		bundleArgs2 := utils.AddBundle(tx2, tx2b, revertTxHashes, 0)
+
+		t.Log("[Step-3]  User3 SendBundle transaction tx2 and bribe tx_2 \n")
+
+		tx3, _ := utils.SendLockMempool(conf.RootPk6, conf.WBNB, conf.TransferWBNBCode, conf.MedGas, big.NewInt(10*conf.MinGasPrice), false, true)
+		arg3 := utils.UserTx(conf.RootPk7, conf.SpecialOp, conf.SpecialOpBb, conf.MedGas, big.NewInt(conf.MinGasPrice))
+		tmp = arg3.Contract
+		arg3.Contract = conf.SysAddress
+		tx3b, revertTxHashes := sendBundle.GenerateBNBTxs(&arg3, big.NewInt(1.5e8*1e9), arg3.Data, 1)
+		arg3.Contract = tmp
+		txs := append(tx1, tx2...)
+		txs = append(txs, tx3...)
+		// send tx1 tx2 tx3
+
+		bundleArgs3 := utils.AddBundle(txs, tx3b, revertTxHashes, 0)
+
+		t.Log("[Step-4] SendBundles  \n")
+		cbn := testcase.SendBundlesTri(t, &usr1Arg, &usr2Arg, &arg3, bundleArgs1, bundleArgs2, bundleArgs3)
+		time.Sleep(6 * time.Second)
+		//check tx index
+		testcase.UpdateUsrList6(0, tx1, true, conf.TxSucceed)
+		testcase.UpdateUsrList6(1, tx1b, true, conf.TxSucceed)
+		testcase.UpdateUsrList6(2, tx2, true, conf.TxSucceed)
+		testcase.UpdateUsrList6(3, tx2b, true, conf.TxSucceed)
+		testcase.UpdateUsrList6(4, tx3, true, conf.TxSucceed)
+		testcase.UpdateUsrList6(5, tx3b, false, conf.TxFailed)
+		utils.VerifyTx6(t, cbn, testcase.UsrList6)
+	})
 }

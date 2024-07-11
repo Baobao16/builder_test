@@ -31,6 +31,7 @@ var (
 	Args            = make([]*sendBundle.BidCaseArg, 2)
 	Args3           = make([]*sendBundle.BidCaseArg, 3)
 	UsrList         = make([]utils.TxStatus, 3)
+	UsrList6        = make([]utils.TxStatus, 6)
 	BundleargsLsit  = make([]*types.SendBundleArgs, 2)
 	BundleargsLsit3 = make([]*types.SendBundleArgs, 3)
 )
@@ -47,6 +48,11 @@ func UpdateUsrList(index int, txs types.Transactions, mined bool, result string)
 	UsrList[index].Txs = txs
 	UsrList[index].Mined = mined
 	UsrList[index].Rst = result
+}
+func UpdateUsrList6(index int, txs types.Transactions, mined bool, result string) {
+	UsrList6[index].Txs = txs
+	UsrList6[index].Mined = mined
+	UsrList6[index].Rst = result
 }
 
 func SendBundles(t *testing.T, usr1Arg *sendBundle.BidCaseArg, usr2Arg *sendBundle.BidCaseArg, bundleArgs1 *types.SendBundleArgs, bundleArgs2 *types.SendBundleArgs) uint64 {
