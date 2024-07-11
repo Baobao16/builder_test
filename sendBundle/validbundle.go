@@ -54,7 +54,7 @@ func ValidBundle_NilPayBidTx_2(arg *BidCaseArg, sim bool) (types.Transactions, e
 			MinTimestamp:      arg.MaxTS,
 			MaxTimestamp:      arg.MinTS,
 		}
-		err := arg.BuilderClient.SendBundle(arg.Ctx, bundleArgs)
+		_, err := arg.BuilderClient.SendBundle(arg.Ctx, *bundleArgs)
 		if err != nil {
 			log.Println("failed to send bundle", "err", err)
 		}

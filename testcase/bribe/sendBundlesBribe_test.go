@@ -364,7 +364,7 @@ func Test_P1_comValue(t *testing.T) {
 		usrArg := utils.UserTx(conf.RootPk5, conf.Mylock, testcase.ResetData, conf.LowGas, big.NewInt(conf.MinGasPrice))
 		usrArg.TxCount = 1
 		tx1, bundleArgs, _ := sendBundle.ValidBundle_NilPayBidTx_1(&usrArg)
-		err := usrArg.BuilderClient.SendBundle(usrArg.Ctx, bundleArgs)
+		_, err := usrArg.BuilderClient.SendBundle(usrArg.Ctx, *bundleArgs)
 		if err != nil {
 			return
 		}
