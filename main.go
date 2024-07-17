@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/xkwang/conf"
 	"math/big"
 	"os"
 	"strings"
@@ -117,8 +118,8 @@ func main() {
 		BuilderClient: client3,
 		TxCount:       3,
 		// Contract:      common.HexToAddress("0x7b09bb26c9fef574ea980a33fc71c184405a4023"),
-		Contract:   sendBundle.WBNB,
-		Data:       sendBundle.TransferWBNB_code,
+		Contract:   conf.WBNB,
+		Data:       conf.TransferWBNBCode,
 		GasPrice:   big.NewInt(500),
 		GasLimit:   big.NewInt(50000),
 		SendAmount: big.NewInt(50),

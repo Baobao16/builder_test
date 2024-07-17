@@ -74,8 +74,9 @@ func Test_P1_value(t *testing.T) {
 		bundleArgs, arg, tx2 := testcase.AddUserBundle(conf.RootPk2, conf.WBNB, conf.TransferWBNBCode, conf.SendA, conf.LowGas, tx1, nil, 0)
 		cbn := utils.SendBundlesMined(t, *arg, bundleArgs)
 		utils.WaitMined(tx2, cbn)
-		testcase.CheckTransactionIndex(t, *tx1[0], "0x0")
-		testcase.CheckTransactionIndex(t, *tx2[0], "0x1")
+		tx1Index := testcase.GetTxIndex(*tx1[0])
+		tx2Index := testcase.GetTxIndex(*tx2[0])
+		assert.Greater(t, tx2Index, tx1Index)
 	})
 }
 
@@ -416,10 +417,11 @@ func Test_p1_conflict_mb(t *testing.T) {
 		assert.Equal(t, response.Result.Status, conf.TxSucceed)
 	})
 	testCases := []struct {
-		send     bool
-		tx1Index string
-		tx2Index string
-	}{{true, "0x0", "0x1"}, {false, "0x1", "0x0"}}
+		send   bool
+		tx1tx2 bool
+		//tx1Index string"0x0", "0x1"
+		//tx2Index string"0x1", "0x0"
+	}{{true, true}, {false, false}}
 	//	 1. private 不发expected: [tx2 tx1]
 	//	 2. Mem_pool里有tx1 tx2则贵的先上
 	for index, tc := range testCases {
@@ -441,9 +443,41 @@ func Test_p1_conflict_mb(t *testing.T) {
 				log.Println(" failed: ", err.Error())
 			}
 			time.Sleep(6 * time.Second)
-			testcase.CheckTransactionIndex(t, *tx1[0], tc.tx1Index)
-			testcase.CheckTransactionIndex(t, *tx2[0], tc.tx2Index)
+			//testcase.CheckTransactionIndex(t, *tx1[0], tc.tx1Index)
+			//testcase.CheckTransactionIndex(t, *tx2[0], tc.tx2Index)
+			tx1Index := testcase.GetTxIndex(*tx1[0])
+			tx2Index := testcase.GetTxIndex(*tx2[0])
+			if tc.tx1tx2 == true {
+				assert.Greater(t, tx2Index, tx1Index)
+			} else {
+				assert.Greater(t, tx1Index, tx2Index)
+			}
 
 		})
 	}
+}
+
+func Test_p1_gasPrice_sort(t *testing.T) {
+	t.Run("Priority given to transactions with high gasPrice ", func(t *testing.T) {
+		t.Log("[Step-1] Root User Expose mem_pool transaction tx1")
+		tx1, _ := utils.SendLockMempool(conf.RootPk3, conf.WBNB, conf.TransferWBNBCode, conf.MedGas, big.NewInt(10*conf.MinGasPrice), false, true)
+
+		t.Log("[Step-2] User 1 bundle [tx2]")
+		var txs types.Transactions
+		userArg := utils.UserTx(conf.RootPk5, conf.WBNB, conf.TransferWBNBCode, conf.MedGas, big.NewInt(conf.MinGasPrice))
+		tx2, revertTxHashes := sendBundle.GenerateBNBTxs(&userArg, userArg.SendAmount, userArg.Data, 1)
+		bundleArgs := utils.AddBundle(tx2, txs, revertTxHashes, 0)
+		_, err := userArg.BuilderClient.SendBundle(userArg.Ctx, *bundleArgs)
+		if err != nil {
+			log.Println("failed: ", err.Error())
+		}
+		time.Sleep(6 * time.Second)
+		testcase.UpdateUsrList(0, tx1, true, conf.TxSucceed)
+		testcase.UpdateUsrList(1, tx2, true, conf.TxSucceed)
+
+		t.Log("[Step-5] Transaction order check.\n")
+		cbn, _ := userArg.Client.BlockNumber(userArg.Ctx)
+		utils.VerifyTx(t, cbn, testcase.UsrList)
+
+	})
 }

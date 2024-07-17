@@ -49,6 +49,7 @@ func UpdateUsrList(index int, txs types.Transactions, mined bool, result string)
 	UsrList[index].Mined = mined
 	UsrList[index].Rst = result
 }
+
 func UpdateUsrList6(index int, txs types.Transactions, mined bool, result string) {
 	UsrList6[index].Txs = txs
 	UsrList6[index].Mined = mined
@@ -71,9 +72,17 @@ func SendBundlesTri(t *testing.T, usr1Arg *sendBundle.BidCaseArg, usr2Arg *sendB
 	BundleargsLsit3[2] = bundleArgs3
 	return utils.ConcurSendBundles(t, Args3, BundleargsLsit3)
 }
+
 func CheckTransactionIndex(t *testing.T, tx types.Transaction, expectedIndex string) {
 	response := utils.GetTransactionReceipt(tx)
 	txIndex := response.Result.TransactionIndex
 	assert.Equal(t, txIndex, expectedIndex)
 	log.Printf("Transaction %v index: %v,gasUsed %v", tx.Hash().Hex(), txIndex, response.Result.GasUsed)
+}
+
+func GetTxIndex(tx types.Transaction) string {
+	response := utils.GetTransactionReceipt(tx)
+	txIndex := response.Result.TransactionIndex
+	log.Printf("Transaction %v index: %v,gasUsed %v", tx.Hash().Hex(), txIndex, response.Result.GasUsed)
+	return txIndex
 }

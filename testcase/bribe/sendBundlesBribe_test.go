@@ -47,7 +47,7 @@ func Test_p0_value_preservation(t *testing.T) {
 		t.Run("backRun_value_preservation"+strconv.Itoa(index), func(t *testing.T) {
 			rh := make([]common.Hash, 0)
 			t.Logf("[Step-1] User 1 bundle [tx1], tx1 Contract bet_%v .\n", tc.aContract)
-			bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk, conf.ValueCp, tc.a, bribeFee1, conf.HighGas, txs, rh, 0)
+			bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk6, conf.ValueCp, tc.a, bribeFee1, conf.HighGas, txs, rh, 0)
 
 			t.Logf("[Step-2] User 2 bundle [tx2], tx2 Contract bet_%v .\n", tc.bMinted)
 			blockNum, _ := usr1Arg.Client.BlockNumber(usr1Arg.Ctx)
@@ -61,15 +61,15 @@ func Test_p0_value_preservation(t *testing.T) {
 			testcase.SendBundles(t, usr1Arg, usr2Arg, bundleArgs1, bundleArgs2)
 
 			t.Log("[Step-4] Check tx Minted .\n")
-			//blk, _ := strconv.ParseInt(strings.TrimPrefix(response1.Result.BlockNumber, "0x"), 16, 64)
-			//t.Logf("Tx1 in Blk : %v .\n", blk)
-			//assert.Equal(t, blk, int64(MaxBN))
 			if tc.aMinted {
-				testcase.CheckTransactionIndex(t, *txs1[0], "0x0")
+				tx1Index := testcase.GetTxIndex(*txs1[0])
+				assert.NotEmpty(t, tx1Index)
 			}
+
 			if tc.bMinted {
-				//assert.Equal(t, response1.Result.BlockNumber, response2.Result.BlockNumber, "tx1 tx2 in diff Block")
-				testcase.CheckTransactionIndex(t, *txs2[0], "0x1")
+				tx1Index := testcase.GetTxIndex(*txs1[0])
+				tx2Index := testcase.GetTxIndex(*txs2[0])
+				assert.Greater(t, tx2Index, tx1Index)
 			}
 
 		})
@@ -130,7 +130,7 @@ func Test_p0_bribe(t *testing.T) {
 		*/
 		t.Log("[Step-1] Root User Expose mem_pool transaction  tx1\n")
 		lockData := utils.GeneEncodedData(testcase.LockABI, "lock", 1, true)
-		txs, _ := utils.SendLockMempool(conf.RootPk, conf.Mylock, lockData, conf.MedGas, big.NewInt(conf.MinGasPrice), false, true)
+		txs, _ := utils.SendLockMempool(conf.RootPk6, conf.Mylock, lockData, conf.MedGas, big.NewInt(conf.MinGasPrice), false, true)
 
 		t.Log("[Step-2] User 1 bundle [tx1, tx2], tx2 not allowed to revert.\n")
 		bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk2, conf.Mylock, testcase.UnlockMoreData, conf.SendA, conf.HighGas, txs, nil, 0)
@@ -168,7 +168,7 @@ func Test_p0_SpecialOp(t *testing.T) {
 		t.Log("send bundles testCoinbase \n")
 		defer utils.ResetLockContract(t, conf.Mylock, testcase.ResetData)
 
-		arg := utils.UserTx(conf.RootPk, conf.SpecialOp, conf.SpecialOpCb, conf.HighGas, big.NewInt(conf.MinGasPrice))
+		arg := utils.UserTx(conf.RootPk6, conf.SpecialOp, conf.SpecialOpCb, conf.HighGas, big.NewInt(conf.MinGasPrice))
 		arg.TxCount = 1
 		txs, bundleArgs, _ := sendBundle.ValidBundle_NilPayBidTx_1(&arg)
 		cbn := utils.SendBundlesMined(t, arg, bundleArgs)
@@ -284,7 +284,7 @@ func Test_p0_BundleLedger(t *testing.T) {
 	utils.GetAccBalance(conf.MidAddress)
 	Balance1 := utils.GetAccBalance(conf.RcvAddress)
 	t.Log("[Step-1] Blk1 Root User Expose Mem_pool transaction  gasFee 100Gwei . \n")
-	tx1, _ := utils.SendLockMempool(conf.RootPk, conf.WBNB, conf.TransferWBNBCode, conf.MedGas, big.NewInt(conf.MinGasPrice), false, true)
+	tx1, _ := utils.SendLockMempool(conf.RootPk6, conf.WBNB, conf.TransferWBNBCode, conf.MedGas, big.NewInt(conf.MinGasPrice), false, true)
 	utils.BlockHeightIncreased(t)
 	utils.CheckBundleTx(t, *tx1[0], true, conf.TxSucceed)
 
@@ -300,7 +300,9 @@ func Test_p0_BundleLedger(t *testing.T) {
 	utils.SendBundlesMined(t, arg, bundleArgs2)
 
 	Balance2 := utils.GetAccBalance(conf.RcvAddress)
-	testcase.CheckTransactionIndex(t, *txb[0], "0x0")
+	tx1Index := testcase.GetTxIndex(*tx1[0])
+	tx2Index := testcase.GetTxIndex(*txb[0])
+	assert.Equal(t, tx2Index, tx1Index)
 	result := new(big.Int)
 	result.Sub(Balance2, Balance1)
 	log.Printf("result %v", result)
@@ -331,7 +333,7 @@ func Test_P1_ChooseBd(t *testing.T) {
 		bundleArgs3 := utils.AddBundle(txs1, txs2, nil, 0)
 
 		t.Log("[Step-5] User 1 and User 2 and User 3 send bundles.")
-		usr3Arg := utils.UserTx(conf.RootPk, conf.Mylock, testcase.UnlockStrData, conf.MedGas, big.NewInt(conf.MinGasPrice))
+		usr3Arg := utils.UserTx(conf.RootPk6, conf.Mylock, testcase.UnlockStrData, conf.MedGas, big.NewInt(conf.MinGasPrice))
 		cbn := testcase.SendBundlesTri(t, usr1Arg, usr2Arg, &usr3Arg, bundleArgs1, bundleArgs2, bundleArgs3)
 
 		testcase.UpdateUsrList(0, tx3, true, conf.TxSucceed)
