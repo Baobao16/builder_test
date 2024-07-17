@@ -483,7 +483,8 @@ func Test_p1_gasPrice_sort(t *testing.T) {
 
 	t.Run("Priority given to transactions with high gasPrice【Multi】 ", func(t *testing.T) {
 		t.Log("[Step-1] Root User Expose mem_pool transaction tx1")
-		tx1, _ := utils.SendLockMempool(conf.RootPk3, conf.WBNB, conf.TransferWBNBCode, conf.MedGas, big.NewInt(10*conf.MinGasPrice), false, true)
+		//tx1, _ := utils.SendLockMempool(conf.RootPk3, conf.WBNB, conf.TransferWBNBCode, conf.MedGas, big.NewInt(10*conf.MinGasPrice), false, true) //按gasPrice排序
+		tx1, _ := utils.SendLockMempool(conf.RootPk3, conf.WBNB, conf.TransferWBNBCode, big.NewInt(4e4), big.NewInt(7*conf.MinGasPrice), false, true) //按gasFee排序
 
 		t.Log("[Step-2] User 1 bundle [tx2]")
 		var txs types.Transactions
@@ -495,7 +496,8 @@ func Test_p1_gasPrice_sort(t *testing.T) {
 			log.Println("failed: ", err.Error())
 		}
 		t.Log("[Step-3] Root User Expose mem_pool transaction tx1")
-		tx3, _ := utils.SendLockMempool(conf.RootPk2, conf.WBNB, conf.TransferWBNBCode, conf.MedGas, big.NewInt(6*conf.MinGasPrice), false, true)
+		//tx3, _ := utils.SendLockMempool(conf.RootPk2, conf.WBNB, conf.TransferWBNBCode, conf.MedGas, big.NewInt(6*conf.MinGasPrice), false, true) //按gasPrice排序
+		tx3, _ := utils.SendLockMempool(conf.RootPk2, conf.WBNB, conf.TransferWBNBCode, big.NewInt(5e4), big.NewInt(3*conf.MinGasPrice), false, true) //按gasFee排序
 
 		t.Log("[Step-4] User 1 bundle [tx2]")
 		userArg3 := utils.UserTx(conf.RootPk4, conf.WBNB, conf.TransferWBNBCode, conf.MedGas, big.NewInt(4*conf.MinGasPrice))
