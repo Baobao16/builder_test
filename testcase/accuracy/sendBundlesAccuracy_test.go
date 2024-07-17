@@ -458,7 +458,7 @@ func Test_p1_conflict_mb(t *testing.T) {
 }
 
 func Test_p1_gasPrice_sort(t *testing.T) {
-	t.Run("Priority given to transactions with high gasPrice ", func(t *testing.T) {
+	t.Run("Priority given to transactions with high gasPrice 【Pair】", func(t *testing.T) {
 		t.Log("[Step-1] Root User Expose mem_pool transaction tx1")
 		tx1, _ := utils.SendLockMempool(conf.RootPk3, conf.WBNB, conf.TransferWBNBCode, conf.MedGas, big.NewInt(10*conf.MinGasPrice), false, true)
 
@@ -480,4 +480,48 @@ func Test_p1_gasPrice_sort(t *testing.T) {
 		utils.VerifyTx(t, cbn, testcase.UsrList)
 
 	})
+
+	t.Run("Priority given to transactions with high gasPrice【Multi】 ", func(t *testing.T) {
+		t.Log("[Step-1] Root User Expose mem_pool transaction tx1")
+		tx1, _ := utils.SendLockMempool(conf.RootPk3, conf.WBNB, conf.TransferWBNBCode, conf.MedGas, big.NewInt(10*conf.MinGasPrice), false, true)
+
+		t.Log("[Step-2] User 1 bundle [tx2]")
+		var txs types.Transactions
+		userArg := utils.UserTx(conf.RootPk5, conf.WBNB, conf.TransferWBNBCode, conf.MedGas, big.NewInt(8*conf.MinGasPrice))
+		tx2, revertTxHashes := sendBundle.GenerateBNBTxs(&userArg, userArg.SendAmount, userArg.Data, 1)
+		bundleArgs := utils.AddBundle(tx2, txs, revertTxHashes, 0)
+		_, err := userArg.BuilderClient.SendBundle(userArg.Ctx, *bundleArgs)
+		if err != nil {
+			log.Println("failed: ", err.Error())
+		}
+		t.Log("[Step-3] Root User Expose mem_pool transaction tx1")
+		tx3, _ := utils.SendLockMempool(conf.RootPk2, conf.WBNB, conf.TransferWBNBCode, conf.MedGas, big.NewInt(6*conf.MinGasPrice), false, true)
+
+		t.Log("[Step-4] User 1 bundle [tx2]")
+		userArg3 := utils.UserTx(conf.RootPk4, conf.WBNB, conf.TransferWBNBCode, conf.MedGas, big.NewInt(4*conf.MinGasPrice))
+		tx4, revertTxHashes := sendBundle.GenerateBNBTxs(&userArg3, userArg3.SendAmount, userArg3.Data, 1)
+		bundleArgs3 := utils.AddBundle(tx4, txs, revertTxHashes, 0)
+		_, err = userArg3.BuilderClient.SendBundle(userArg3.Ctx, *bundleArgs3)
+		if err != nil {
+			log.Println("failed: ", err.Error())
+		}
+		time.Sleep(6 * time.Second)
+		tx1Index := testcase.GetTxIndex(*tx1[0])
+		tx2Index := testcase.GetTxIndex(*tx2[0])
+		tx3Index := testcase.GetTxIndex(*tx3[0])
+		tx4Index := testcase.GetTxIndex(*tx4[0])
+		//
+		//testcase.UpdateUsrList(0, tx1, true, conf.TxSucceed)
+		//testcase.UpdateUsrList(1, tx2, true, conf.TxSucceed)
+		//testcase.UpdateUsrList(2, tx3, true, conf.TxSucceed)
+
+		t.Log("[Step-5] Transaction order check.\n")
+		//cbn, _ := userArg.Client.BlockNumber(userArg.Ctx)
+		//utils.VerifyTx(t, cbn, testcase.UsrList)
+		assert.Greater(t, tx2Index, tx1Index)
+		assert.Greater(t, tx3Index, tx2Index)
+		assert.Greater(t, tx4Index, tx3Index)
+
+	})
+
 }
