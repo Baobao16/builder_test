@@ -526,42 +526,49 @@ func Test_p1_gasPrice_sort(t *testing.T) {
 
 	})
 
-	t.Run("Priority given to transactions with high gasPrice 【nonce equal】", func(t *testing.T) {
-		t.Log("[Step-1] Root User Expose mem_pool transaction tx1")
-		tx1, _ := utils.SendLockMempool(conf.RootPk3, conf.WBNB, conf.TransferWBNBCode, conf.FMGasLimit, big.NewInt(10*conf.MinGasPrice), false, true, 0) // case1 Mempool Tx tx1 10Gwei  Bundle Txtx1' 1Gwei
-		//tx1, _ := utils.SendLockMempool(conf.RootPk3, conf.WBNB, conf.TransferWBNBCode, conf.FMGasLimit, big.NewInt(5*conf.MinGasPrice), false, true, 0) // case2 Mempool Tx tx1 1Gwei  Bundle Txtx1' 10Gwei
+	testCases := []struct {
+		Mempool_gasPrice int64
+		Bundle_gasPrice  int64
+		tx1              bool
+		tx1Status        string
+		tx2              bool
+		tx2Status        string
+		tx3              bool
+		tx3Status        string
+	}{
+		{10, 1, true, conf.TxSucceed, false, conf.TxFailed, false, conf.TxFailed},
+		{5, 10, false, conf.TxFailed, true, conf.TxSucceed, true, conf.TxSucceed},
+	}
 
-		t.Log("[Step-2] User 1 bundle [tx1', tx2]")
-		userArg := utils.UserTx(conf.RootPk3, conf.WBNB, conf.TransferWBNBCode, conf.MedGasLimit, big.NewInt(conf.MinGasPrice)) // case1 Mempool Tx tx1 10Gwei  Bundle Tx tx1' 1Gwei
-		//userArg := utils.UserTx(conf.RootPk3, conf.WBNB, conf.TransferWBNBCode, conf.MedGasLimit, big.NewInt(conf.MinGasPrice)) // case2 Mempool Tx tx1 1Gwei  Bundle Tx  tx1' 10Gwei
+	for index, tc := range testCases {
+		t.Run("Priority given to transactions with high gasPrice 【nonce equal】"+strconv.Itoa(index), func(t *testing.T) {
+			t.Log("[Step-1] Root User Expose mem_pool transaction tx1")
+			tx1, _ := utils.SendLockMempool(conf.RootPk3, conf.WBNB, conf.TransferWBNBCode, conf.FMGasLimit, big.NewInt(tc.Mempool_gasPrice*conf.MinGasPrice), false, true, 0)
 
-		userArg2 := utils.UserTx(conf.RootPk4, conf.WBNB, conf.TransferWBNBCode, conf.MedGasLimit, big.NewInt(conf.MinGasPrice)) // case1 Mempool Tx tx1 10Gwei  Bundle Tx tx1' 1Gwei
-		//userArg2 := utils.UserTx(conf.RootPk4, conf.WBNB, conf.TransferWBNBCode, conf.MedGasLimit, big.NewInt(10*conf.MinGasPrice)) // case2 Mempool Tx tx1 1Gwei  Bundle Tx  tx1' 10G
+			t.Log("[Step-2] User 1 bundle [tx1', tx2]")
 
-		txs, _ := sendBundle.GenerateBNBTxs(&userArg2, userArg2.SendAmount, userArg2.Data, 1, 0)
+			userArg2 := utils.UserTx(conf.RootPk4, conf.WBNB, conf.TransferWBNBCode, conf.MedGasLimit, big.NewInt(tc.Bundle_gasPrice*conf.MinGasPrice))
+			txs, _ := sendBundle.GenerateBNBTxs(&userArg2, userArg2.SendAmount, userArg2.Data, 1, 0)
 
-		////userArg.RevertList = []int{0} // case1 Mempool Tx tx1 10Gwei  Bundle Tx tx1' 1Gwei
-		tx2, revertTxHashes := sendBundle.GenerateBNBTxs(&userArg, userArg.SendAmount, userArg.Data, 1, 1)
-		bundleArgs := utils.AddBundle(tx2, txs, revertTxHashes, 0)
+			userArg := utils.UserTx(conf.RootPk3, conf.WBNB, conf.TransferWBNBCode, conf.MedGasLimit, big.NewInt(conf.MinGasPrice))
+			////userArg.RevertList = []int{0} // case1 Mempool Tx tx1 10Gwei  Bundle Tx tx1' 1Gwei
+			tx2, revertTxHashes := sendBundle.GenerateBNBTxs(&userArg, userArg.SendAmount, userArg.Data, 1, 1)
+			bundleArgs := utils.AddBundle(tx2, txs, revertTxHashes, 0)
 
-		_, err := userArg.BuilderClient.SendBundle(userArg.Ctx, *bundleArgs)
-		if err != nil {
-			log.Println("SendBundle failed: ", err.Error())
-		}
-		t.Log("[Step-3] Check result")
+			_, err := userArg.BuilderClient.SendBundle(userArg.Ctx, *bundleArgs)
+			if err != nil {
+				log.Println("SendBundle failed: ", err.Error())
+			}
+			t.Log("[Step-3] Check result")
 
-		time.Sleep(6 * time.Second)
-		cbn, _ := userArg.Client.BlockNumber(userArg.Ctx)
-		//// case1 Mempool Tx tx1 10Gwei  Bundle Tx tx1' 1Gwei
-		testcase.UpdateUsrList(0, tx1, true, conf.TxSucceed)
-		testcase.UpdateUsrList(1, tx2, false, conf.TxFailed)
-		testcase.UpdateUsrList(2, txs, false, conf.TxFailed) // case1 Mempool Tx tx1 10Gwei  Bundle Tx tx1' 1Gwei tx1' no-revert
+			time.Sleep(6 * time.Second)
+			cbn, _ := userArg.Client.BlockNumber(userArg.Ctx)
+			testcase.UpdateUsrList(0, tx1, tc.tx1, tc.tx1Status)
+			testcase.UpdateUsrList(1, tx2, tc.tx2, tc.tx2Status)
+			testcase.UpdateUsrList(2, txs, tc.tx3, tc.tx3Status) // case1 Mempool Tx tx1 10Gwei  Bundle Tx tx1' 1Gwei tx1' no-revert
+			utils.VerifyTx(t, cbn, testcase.UsrList)
 
-		// case2 Mempool Tx tx1 1Gwei  Bundle Tx  tx1' 10Gwei
-		//testcase.UpdateUsrList(0, tx1, false, conf.TxFailed)
-		//testcase.UpdateUsrList(1, tx2, true, conf.TxSucceed)
-		//testcase.UpdateUsrList(2, txs, true, conf.TxSucceed)
-		utils.VerifyTx(t, cbn, testcase.UsrList)
+		})
 
-	})
+	}
 }
