@@ -20,7 +20,7 @@ import (
 
 func ValidSend_ContractTx_1(arg *BidCaseArg) (types.Transaction, error) {
 
-	txs, _ := GenerateBNBTxs(arg, arg.SendAmount, arg.Data, 1)
+	txs, _ := GenerateBNBTxs(arg, arg.SendAmount, arg.Data, 1, 0)
 
 	txBytes := make([]hexutil.Bytes, 0)
 	for _, tx := range txs {
@@ -41,7 +41,7 @@ func ValidSend_ContractTx_1(arg *BidCaseArg) (types.Transaction, error) {
 }
 func ValidSend_ContractTx(arg *BidCaseArg) (types.Transaction, error) {
 
-	txs, _ := GenerateBNBTxs(arg, arg.SendAmount, arg.Data, 1)
+	txs, _ := GenerateBNBTxs(arg, arg.SendAmount, arg.Data, 1, 0)
 
 	txBytes := make([]hexutil.Bytes, 0)
 	for _, tx := range txs {

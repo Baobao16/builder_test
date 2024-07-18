@@ -9,7 +9,7 @@ import (
 )
 
 func ValidBundle_NilPayBidTx_1(arg *BidCaseArg) (types.Transactions, *types.SendBundleArgs, error) {
-	txs, revertTxHashes := GenerateBNBTxs(arg, arg.SendAmount, arg.Data, arg.TxCount)
+	txs, revertTxHashes := GenerateBNBTxs(arg, arg.SendAmount, arg.Data, arg.TxCount, 0)
 	txBytes := make([]hexutil.Bytes, 0, len(txs))
 	for _, tx := range txs {
 		txByte, err := tx.MarshalBinary()
@@ -35,7 +35,7 @@ func ValidBundle_NilPayBidTx_1(arg *BidCaseArg) (types.Transactions, *types.Send
 }
 
 func ValidBundle_NilPayBidTx_2(arg *BidCaseArg, sim bool) (types.Transactions, error) {
-	txs, revertTxHashes := GenerateBNBTxs(arg, arg.SendAmount, arg.Data, arg.TxCount) // []common.Hash,
+	txs, revertTxHashes := GenerateBNBTxs(arg, arg.SendAmount, arg.Data, arg.TxCount, 0) // []common.Hash,
 	txBytes := make([]hexutil.Bytes, 0)
 	for _, tx := range txs {
 		// log.Println(tx.Nonce())

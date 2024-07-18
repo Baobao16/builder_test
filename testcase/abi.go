@@ -38,7 +38,7 @@ var (
 
 func AddUserBundle(pk string, lock common.Address, data []byte, SendAmount *big.Int, gas *big.Int, existingTxs types.Transactions, revertTx []common.Hash, MaxBN uint64) (*types.SendBundleArgs, *sendBundle.BidCaseArg, types.Transactions) {
 	userArg := utils.UserTx(pk, lock, data, gas, big.NewInt(conf.MedGasPrice))
-	newTxs, revertTxHashes := sendBundle.GenerateBNBTxs(&userArg, SendAmount, userArg.Data, 1)
+	newTxs, revertTxHashes := sendBundle.GenerateBNBTxs(&userArg, SendAmount, userArg.Data, 1, 0)
 	revertTx = append(revertTxHashes, revertTx...)
 	bundleArgs := utils.AddBundle(existingTxs, newTxs, revertTx, MaxBN)
 	return bundleArgs, &userArg, newTxs

@@ -30,16 +30,17 @@ var (
 	SysAddress   = common.HexToAddress("0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE")
 	// Coinbase = common.HexToAddress("0x7d83033eFaE53d3250cff2d9e39E4a63fdEd9712")
 
-	MinGasPrice = int64(1e9)  // 小于1Gwei 的gasPrice会失败
-	MedGasPrice = int64(1e10) // 小于1Gwei 的gasPrice会失败
-	SendA       = big.NewInt(0)
-	HighGas     = big.NewInt(3e6)
-	MedGas      = big.NewInt(2e6)
-	LowGas      = big.NewInt(1e6)
-	LockPath    = "../../abi/ugLock.json"
-	SpePath     = "../../abi/specialOp.json"
-	ValueCpPath = "../../abi/ValueCp.json"
-	OwnerPath   = "../../abi/Owner.json"
+	MinGasPrice  = int64(1e9)  // 小于1Gwei 的gasPrice会失败
+	MedGasPrice  = int64(1e10) // 小于1Gwei 的gasPrice会失败
+	SendA        = big.NewInt(0)
+	HighGasLimit = big.NewInt(3e6)
+	MedGasLimit  = big.NewInt(2e6)
+	FMGasLimit   = big.NewInt(50000)
+	LowGasLimit  = big.NewInt(1e6)
+	LockPath     = "../../abi/ugLock.json"
+	SpePath      = "../../abi/specialOp.json"
+	ValueCpPath  = "../../abi/ValueCp.json"
+	OwnerPath    = "../../abi/Owner.json"
 
 	SpecialOpBb = common.Hex2Bytes("1c6dc3c0")
 	SpecialOpCb = common.Hex2Bytes("e6f1f7510000000000000000000000007d83033efae53d3250cff2d9e39e4a63fded9712")

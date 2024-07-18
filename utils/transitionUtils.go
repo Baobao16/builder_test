@@ -142,14 +142,14 @@ func IsEmptyField(result ResultB) bool {
 	return false
 }
 
-func SendLockMempool(usr string, contract common.Address, data []byte, gasLimit *big.Int, gasPrice *big.Int, revert bool, send bool) (types.Transactions, []common.Hash) {
+func SendLockMempool(usr string, contract common.Address, data []byte, gasLimit *big.Int, gasPrice *big.Int, revert bool, send bool, nonce int) (types.Transactions, []common.Hash) {
 	usrArg := UserTx(usr, contract, data, gasLimit, gasPrice)
 	if revert {
 		log.Printf("mem_pool transaction  will in bundle RevertList . ")
 		usrArg.RevertListNormal = []int{0} // 当前交易被记入RevertList
 	}
 	//log.Printf("Set mem_pool transaction  ")
-	tx, revertHash := sendBundle.GenerateBNBTxs(&usrArg, usrArg.SendAmount, usrArg.Data, 1)
+	tx, revertHash := sendBundle.GenerateBNBTxs(&usrArg, usrArg.SendAmount, usrArg.Data, 1, nonce)
 	txBytes := make([]hexutil.Bytes, 0)
 	serializeTxs(tx, txBytes)
 	if send {
@@ -243,7 +243,7 @@ func GeneEncodedData(con Contract, method string, args ...interface{}) []byte {
 
 func ResetLockContract(t *testing.T, contract common.Address, data []byte) {
 	t.Log("Root User reset Contract lock")
-	usrArg := UserTx(conf.RootPk5, contract, data, conf.HighGas, big.NewInt(conf.MinGasPrice))
+	usrArg := UserTx(conf.RootPk5, contract, data, conf.MedGasLimit, big.NewInt(conf.MinGasPrice))
 	usrArg.TxCount = 1
 
 	txs, bundleArgs, _ := sendBundle.ValidBundle_NilPayBidTx_1(&usrArg)

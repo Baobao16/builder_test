@@ -11,7 +11,7 @@ import (
 // 压力测试函数
 // 持续发送bundles
 func BenchmarkSendBundles(b *testing.B) {
-	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferWBNBCode, conf.HighGas)
+	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferWBNBCode, conf.MedGasLimit)
 	// 循环执行测试函数
 	for i := 0; i < b.N; i++ {
 		// 在每次迭代中调用接口

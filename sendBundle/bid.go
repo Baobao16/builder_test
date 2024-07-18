@@ -109,12 +109,15 @@ func PriKeyToAddress(privateKey string) (*ecdsa.PrivateKey, common.Address) {
 	return privateECDSAKey, selfAddress
 }
 
-func GenerateBNBTxs(arg *BidCaseArg, amountPerTx *big.Int, data []byte, txCount int) (types.Transactions, []common.Hash) {
+func GenerateBNBTxs(arg *BidCaseArg, amountPerTx *big.Int, data []byte, txCount int, nonce int) (types.Transactions, []common.Hash) {
 	//bundleFactory := NewBidFactory(arg.Ctx, arg.Client, arg.RootPk, arg.BobPk, arg.Abc)
 	revertTxHashes := make([]common.Hash, 0)
 	rootAccount := NewAccount(arg.RootPk)
 	var err error
 	rootAccount.Nonce, err = arg.Client.PendingNonceAt(arg.Ctx, rootAccount.Address)
+	if nonce != 0 {
+		rootAccount.Nonce = rootAccount.Nonce - uint64(nonce)
+	}
 	if err != nil {
 		fmt.Println("get nonce", "err", err)
 	}

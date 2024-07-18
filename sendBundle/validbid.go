@@ -35,7 +35,7 @@ func RunValidCases(arg *BidCaseArg) {
 // gasFee = 21000 * 1 * 0.0000001 BNB = 0.42/200 BNB
 func ValidBid_NilPayBidTx_1(arg *BidCaseArg) error {
 	// TODO: validator could ignore revert tx
-	txs, _ := GenerateBNBTxs(arg, arg.SendAmount, arg.Data, arg.TxCount)
+	txs, _ := GenerateBNBTxs(arg, arg.SendAmount, arg.Data, arg.TxCount, 0)
 
 	for {
 		time.Sleep(5000 * time.Millisecond)
