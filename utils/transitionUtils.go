@@ -85,7 +85,7 @@ func UserTx(rootName string, contract common.Address, data []byte, gasLimit *big
 	}
 }
 
-func serializeTxs(txs types.Transactions, txBytes []hexutil.Bytes) []hexutil.Bytes {
+func SerializeTxs(txs types.Transactions, txBytes []hexutil.Bytes) []hexutil.Bytes {
 	// 定义一个函数来处理交易的序列化
 	for _, tx := range txs {
 		txByte, err := tx.MarshalBinary()
@@ -99,19 +99,48 @@ func serializeTxs(txs types.Transactions, txBytes []hexutil.Bytes) []hexutil.Byt
 	return txBytes
 }
 
+type CallBundleArgs struct {
+	BlockNumber uint64
+	Txs         interface{}
+}
+
 func AddBundle(txs types.Transactions, txsNew types.Transactions, revertTxHashes []common.Hash, MaxBN uint64) *types.SendBundleArgs {
 	// 构造新的bundle，包含Mem-pool交易
 	txBytes := make([]hexutil.Bytes, 0)
 
 	// 序列化交易
-	txBytes = serializeTxs(txs, txBytes)
-	txBytes = serializeTxs(txsNew, txBytes)
+	txBytes = SerializeTxs(txs, txBytes)
+	txBytes = SerializeTxs(txsNew, txBytes)
 
 	// 构建bundle参数
 	bundleArgs := &types.SendBundleArgs{
 		Txs:               txBytes,
 		RevertingTxHashes: revertTxHashes,
 		MaxBlockNumber:    MaxBN,
+	}
+
+	// 打印bundle参数的JSON表示
+	if bidJson, err := json.MarshalIndent(bundleArgs, "", "  "); err == nil {
+		log.Println(string(bidJson))
+	} else {
+		log.Printf("Failed to marshal bundleArgs: %v", err)
+	}
+
+	return bundleArgs
+}
+
+func AddCallBundle(txs types.Transactions, txsNew types.Transactions, number uint64) *CallBundleArgs {
+	// 构造新的bundle，包含Mem-pool交易
+	txBytes := make([]hexutil.Bytes, 0)
+
+	// 序列化交易
+	txBytes = SerializeTxs(txs, txBytes)
+	txBytes = SerializeTxs(txsNew, txBytes)
+
+	// 构建bundle参数
+	bundleArgs := &CallBundleArgs{
+		BlockNumber: uint64(number + 1),
+		Txs:         txBytes,
 	}
 
 	// 打印bundle参数的JSON表示
@@ -151,7 +180,7 @@ func SendLockMempool(usr string, contract common.Address, data []byte, gasLimit 
 	//log.Printf("Set mem_pool transaction  ")
 	tx, revertHash := sendBundle.GenerateBNBTxs(&usrArg, usrArg.SendAmount, usrArg.Data, 1, nonce)
 	txBytes := make([]hexutil.Bytes, 0)
-	serializeTxs(tx, txBytes)
+	SerializeTxs(tx, txBytes)
 	if send {
 		err := usrArg.Client.SendTransaction(usrArg.Ctx, tx[0])
 		log.Printf("Send Mem_pool transaction  %v [gasPrice: %v , gasLimit : %v] \n", tx[0].Hash(), usrArg.GasPrice, usrArg.GasLimit)

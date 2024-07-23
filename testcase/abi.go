@@ -1,7 +1,9 @@
 package testcase
 
 import (
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/xkwang/conf"
@@ -42,6 +44,23 @@ func AddUserBundle(pk string, lock common.Address, data []byte, SendAmount *big.
 	revertTx = append(revertTxHashes, revertTx...)
 	bundleArgs := utils.AddBundle(existingTxs, newTxs, revertTx, MaxBN)
 	return bundleArgs, &userArg, newTxs
+}
+
+type CallBundleArgs struct {
+	BlockNumber uint64
+	Txs         interface{}
+}
+
+func AddCallUserBundle(pk string, lock common.Address, data []byte, SendAmount *big.Int, gas *big.Int, existingTxs types.Transactions, revertTx []common.Hash, MaxBN uint64) (*CallBundleArgs, *sendBundle.BidCaseArg, types.Transactions) {
+	userArg := utils.UserTx(pk, lock, data, gas, big.NewInt(conf.MedGasPrice))
+	var number hexutil.Uint64
+	if err := userArg.BuilderClient.Client().Call(&number, "eth_blockNumber"); err != nil {
+		fmt.Printf("get blocknumber failed, err: %v\n", err)
+	}
+	newTxs, revertTxHashes := sendBundle.GenerateBNBTxs(&userArg, SendAmount, userArg.Data, 1, 0)
+	revertTx = append(revertTxHashes, revertTx...)
+	bundleArgs := utils.AddCallBundle(existingTxs, newTxs, uint64(number))
+	return (*CallBundleArgs)(bundleArgs), &userArg, newTxs
 }
 
 func UpdateUsrList(index int, txs types.Transactions, mined bool, result string) {

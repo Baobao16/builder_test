@@ -77,6 +77,10 @@ type SendBundleArgs struct {
 	RevertingTxHashes []common.Hash   `json:"revertingTxHashes"`
 	SimXYZ            bool            `json:"simXYZ"`
 }
+type CallBundleArgs struct {
+	BlockNumber uint64
+	Txs         interface{}
+}
 
 // bundleArgs := &SendBundleArgs{
 // 	//MaxBlockNumber:    9,

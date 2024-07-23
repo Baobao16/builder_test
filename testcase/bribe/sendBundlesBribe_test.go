@@ -89,14 +89,14 @@ func Test_p0_bribe(t *testing.T) {
 
 		t.Log("[Step-1] Root User Expose Mem_pool transaction tx1\n")
 		lockData := utils.GeneEncodedData(testcase.LockABI, "lock", 1, true)
-		txs, _ := utils.SendLockMempool(conf.RootPk2, conf.Mylock, lockData, conf.MedGasLimit, big.NewInt(conf.MinGasPrice), false, true)
+		txs, _ := utils.SendLockMempool(conf.RootPk2, conf.Mylock, lockData, conf.MedGasLimit, big.NewInt(conf.MinGasPrice), false, true, 0)
 
 		t.Log("[Step-2] User 1 bundle-1 [tx1, tx2], tx2 not allowed to revert.\n")
 		bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk2, conf.ValueCp, testcase.UnlockMoreData, conf.SendA, conf.MedGasLimit, txs, nil, 0)
 
 		t.Log("[Step-3] User 2 bundle-2 [tx1, tx3], tx3 not allowed to revert.\n")
 		usr2Arg := utils.UserTx(conf.RootPk3, conf.Mylock, testcase.UnlockStrData, conf.MedGasLimit, big.NewInt(conf.MinGasPrice))
-		txs2, _ := sendBundle.GenerateBNBTxs(&usr2Arg, usr2Arg.SendAmount, usr2Arg.Data, 1)
+		txs2, _ := sendBundle.GenerateBNBTxs(&usr2Arg, usr2Arg.SendAmount, usr2Arg.Data, 1, 0)
 
 		//  Bribe Transaction 【private tx】
 		arg := utils.UserTx(conf.RootPk4, conf.SpecialOp, conf.SpecialOpBb, conf.MedGasLimit, big.NewInt(conf.MinGasPrice))
@@ -104,7 +104,7 @@ func Test_p0_bribe(t *testing.T) {
 		log.Printf("bribe price is %v", bribeFee)
 		tmp := arg.Contract
 		arg.Contract = conf.SysAddress
-		txb, revertTxHashes := sendBundle.GenerateBNBTxs(&arg, bribeFee, arg.Data, 1)
+		txb, revertTxHashes := sendBundle.GenerateBNBTxs(&arg, bribeFee, arg.Data, 1, 0)
 		arg.Contract = tmp
 
 		txs = append(txb, txs...)
@@ -130,21 +130,21 @@ func Test_p0_bribe(t *testing.T) {
 		*/
 		t.Log("[Step-1] Root User Expose mem_pool transaction  tx1\n")
 		lockData := utils.GeneEncodedData(testcase.LockABI, "lock", 1, true)
-		txs, _ := utils.SendLockMempool(conf.RootPk6, conf.Mylock, lockData, conf.MedGasLimit, big.NewInt(conf.MinGasPrice), false, true)
+		txs, _ := utils.SendLockMempool(conf.RootPk6, conf.Mylock, lockData, conf.MedGasLimit, big.NewInt(conf.MinGasPrice), false, true, 0)
 
 		t.Log("[Step-2] User 1 bundle [tx1, tx2], tx2 not allowed to revert.\n")
 		bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk2, conf.Mylock, testcase.UnlockMoreData, conf.SendA, conf.MedGasLimit, txs, nil, 0)
 
 		t.Log("[Step-3] User 2 bundle [tx1, tx3], tx3 not allowed to revert.\n")
 		usr2Arg := utils.UserTx(conf.RootPk3, conf.Mylock, testcase.UnlockStrData, conf.MedGasLimit, big.NewInt(conf.MinGasPrice))
-		txs2, _ := sendBundle.GenerateBNBTxs(&usr2Arg, usr2Arg.SendAmount, usr2Arg.Data, 1)
+		txs2, _ := sendBundle.GenerateBNBTxs(&usr2Arg, usr2Arg.SendAmount, usr2Arg.Data, 1, 0)
 		//  Bribe Transaction 【private tx】
 		arg := utils.UserTx(conf.RootPk4, conf.SpecialOp, conf.SpecialOpBb, conf.MedGasLimit, big.NewInt(conf.MinGasPrice))
 		bribeFee := big.NewInt(50000 * 1e9)
 		log.Printf("bribe price is %v", bribeFee)
 		tmp := arg.Contract
 		arg.Contract = conf.SysAddress
-		txb, revertTxHashes := sendBundle.GenerateBNBTxs(&arg, bribeFee, arg.Data, 1)
+		txb, revertTxHashes := sendBundle.GenerateBNBTxs(&arg, bribeFee, arg.Data, 1, 0)
 		arg.Contract = tmp
 
 		txs0 := append(txb, txs...)
@@ -249,7 +249,7 @@ func Test_p0_BundleBribe(t *testing.T) {
 			usr1Arg := utils.UserTx(conf.RootPk3, conf.WBNB, conf.TransferWBNBCode, conf.MedGasLimit, big.NewInt(conf.MinGasPrice))
 			tmp := usr1Arg.Contract
 			usr1Arg.Contract = tc.add1
-			txs1, revertTxHashes := sendBundle.GenerateBNBTxs(&usr1Arg, tc.bribe1, usr1Arg.Data, 1)
+			txs1, revertTxHashes := sendBundle.GenerateBNBTxs(&usr1Arg, tc.bribe1, usr1Arg.Data, 1, 0)
 			bundleArgs1 := utils.AddBundle(txs, txs1, revertTxHashes, 0)
 			usr1Arg.Contract = tmp
 
@@ -257,7 +257,7 @@ func Test_p0_BundleBribe(t *testing.T) {
 			usr2Arg := utils.UserTx(conf.RootPk2, conf.WBNB, conf.TransferWBNBCode, conf.MedGasLimit, big.NewInt(conf.MinGasPrice))
 			tmp = usr2Arg.Contract
 			usr2Arg.Contract = tc.add2
-			txs2, revertTxHashes := sendBundle.GenerateBNBTxs(&usr2Arg, tc.bribe2, usr2Arg.Data, 1)
+			txs2, revertTxHashes := sendBundle.GenerateBNBTxs(&usr2Arg, tc.bribe2, usr2Arg.Data, 1, 0)
 			bundleArgs2 := utils.AddBundle(txs, txs2, revertTxHashes, 0)
 			usr2Arg.Contract = tmp
 
@@ -284,7 +284,7 @@ func Test_p0_BundleLedger(t *testing.T) {
 	utils.GetAccBalance(conf.MidAddress)
 	Balance1 := utils.GetAccBalance(conf.RcvAddress)
 	t.Log("[Step-1] Blk1 Root User Expose Mem_pool transaction  gasFee 100Gwei . \n")
-	tx1, _ := utils.SendLockMempool(conf.RootPk6, conf.WBNB, conf.TransferWBNBCode, conf.MedGasLimit, big.NewInt(conf.MinGasPrice), false, true)
+	tx1, _ := utils.SendLockMempool(conf.RootPk6, conf.WBNB, conf.TransferWBNBCode, conf.MedGasLimit, big.NewInt(conf.MinGasPrice), false, true, 0)
 	utils.BlockHeightIncreased(t)
 	utils.CheckBundleTx(t, *tx1[0], true, conf.TxSucceed)
 
@@ -294,7 +294,7 @@ func Test_p0_BundleLedger(t *testing.T) {
 	tmp := arg.Contract
 	arg.Contract = conf.SysAddress
 	txs1 := make([]*types.Transaction, 0)
-	txb, revertTxHashes := sendBundle.GenerateBNBTxs(&arg, bribeFee, arg.Data, 1)
+	txb, revertTxHashes := sendBundle.GenerateBNBTxs(&arg, bribeFee, arg.Data, 1, 0)
 	arg.Contract = tmp
 	bundleArgs2 := utils.AddBundle(txb, txs1, revertTxHashes, 0)
 	utils.SendBundlesMined(t, arg, bundleArgs2)
@@ -320,7 +320,7 @@ func Test_P1_ChooseBd(t *testing.T) {
 			tx3 gasLimit 30w, mempool transfer,
 		*/
 		t.Log("[Step-1] Root User Expose mem_pool transaction tx0 tx1")
-		tx3, _ := utils.SendLockMempool(conf.RootPk4, conf.WBNB, conf.TransferWBNBCode, conf.MedGasLimit, big.NewInt(conf.MinGasPrice), false, true)
+		tx3, _ := utils.SendLockMempool(conf.RootPk4, conf.WBNB, conf.TransferWBNBCode, conf.MedGasLimit, big.NewInt(conf.MinGasPrice), false, true, 0)
 
 		t.Log("[Step-2] User 1 bundle [tx1].")
 		bundleArgs1, usr1Arg, txs1 := testcase.AddUserBundle(conf.RootPk2, conf.WBNB, conf.TransferWBNBCode, conf.SendA, conf.MedGasLimit, nil, nil, 0)
@@ -356,10 +356,10 @@ func Test_P1_comValue(t *testing.T) {
 		//pk3 0x6c85F133fa06Fe5eb185743FB6c79f4a7cb9C076
 		//pk2 0xb0b10B09780aa6A315158EF724404aa1497e9E6E
 		t.Log("[Step-2] User Expose mem_pool transaction tx2")
-		tx2, _ := utils.SendLockMempool(conf.RootPk3, conf.Owner, conf.ChangeOwner_other, big.NewInt(1e5), big.NewInt(5e9), false, true)
+		tx2, _ := utils.SendLockMempool(conf.RootPk3, conf.Owner, conf.ChangeOwner_other, big.NewInt(1e5), big.NewInt(5e9), false, true, 0)
 
 		t.Log("[Step-3] User Expose mem_pool transaction tx3")
-		tx3, _ := utils.SendLockMempool(conf.RootPk2, conf.Owner, conf.ChangeOwner_deployer, big.NewInt(1e6), big.NewInt(1e9), false, true)
+		tx3, _ := utils.SendLockMempool(conf.RootPk2, conf.Owner, conf.ChangeOwner_deployer, big.NewInt(1e6), big.NewInt(1e9), false, true, 0)
 
 		t.Log("[Step-1 User 1 bundle [tx1].")
 		t.Log("Root User reset Contract lock")
@@ -393,36 +393,36 @@ func Test_P1_multiBundles(t *testing.T) {
 	t.Run("multiBundles", func(t *testing.T) {
 		t.Log("[Step-1]  User1 SendBundle transaction tx1 and bribe tx_1 \n")
 		usr1Arg := utils.UserTx(conf.RootPk2, conf.WBNB, conf.TransferWBNBCode, conf.MedGasLimit, big.NewInt(conf.MinGasPrice))
-		tx1, _ := sendBundle.GenerateBNBTxs(&usr1Arg, usr1Arg.SendAmount, usr1Arg.Data, 1)
+		tx1, _ := sendBundle.GenerateBNBTxs(&usr1Arg, usr1Arg.SendAmount, usr1Arg.Data, 1, 0)
 		//  Bribe Transaction 【private tx】
 		arg := utils.UserTx(conf.RootPk3, conf.SpecialOp, conf.SpecialOpBb, conf.MedGasLimit, big.NewInt(conf.MinGasPrice))
 		tmp := arg.Contract
 		arg.Contract = conf.SysAddress
-		tx1b, revertTxHashes := sendBundle.GenerateBNBTxs(&arg, big.NewInt(1e8*1e9), arg.Data, 1)
+		tx1b, revertTxHashes := sendBundle.GenerateBNBTxs(&arg, big.NewInt(1e8*1e9), arg.Data, 1, 0)
 		arg.Contract = tmp
 
 		bundleArgs1 := utils.AddBundle(tx1, tx1b, revertTxHashes, 0)
 
 		t.Log("[Step-2]  User2 SendBundle transaction tx2 and bribe tx_2 \n")
 		usr2Arg := utils.UserTx(conf.RootPk4, conf.WBNB, conf.TransferWBNBCode, conf.MedGasLimit, big.NewInt(conf.MinGasPrice))
-		tx2, _ := sendBundle.GenerateBNBTxs(&usr2Arg, usr2Arg.SendAmount, usr2Arg.Data, 1)
+		tx2, _ := sendBundle.GenerateBNBTxs(&usr2Arg, usr2Arg.SendAmount, usr2Arg.Data, 1, 0)
 
 		//  Bribe Transaction 【private tx】
 		arg2 := utils.UserTx(conf.RootPk5, conf.SpecialOp, conf.SpecialOpBb, conf.MedGasLimit, big.NewInt(conf.MinGasPrice))
 		tmp = arg2.Contract
 		arg2.Contract = conf.SysAddress
-		tx2b, revertTxHashes := sendBundle.GenerateBNBTxs(&arg2, big.NewInt(1e8*1e9), arg2.Data, 1)
+		tx2b, revertTxHashes := sendBundle.GenerateBNBTxs(&arg2, big.NewInt(1e8*1e9), arg2.Data, 1, 0)
 		arg2.Contract = tmp
 
 		bundleArgs2 := utils.AddBundle(tx2, tx2b, revertTxHashes, 0)
 
 		t.Log("[Step-3]  User3 SendBundle transaction tx2 and bribe tx_2 \n")
 
-		tx3, _ := utils.SendLockMempool(conf.RootPk6, conf.WBNB, conf.TransferWBNBCode, conf.MedGasLimit, big.NewInt(10*conf.MinGasPrice), false, true)
+		tx3, _ := utils.SendLockMempool(conf.RootPk6, conf.WBNB, conf.TransferWBNBCode, conf.MedGasLimit, big.NewInt(10*conf.MinGasPrice), false, true, 0)
 		arg3 := utils.UserTx(conf.RootPk7, conf.SpecialOp, conf.SpecialOpBb, conf.MedGasLimit, big.NewInt(conf.MinGasPrice))
 		tmp = arg3.Contract
 		arg3.Contract = conf.SysAddress
-		tx3b, revertTxHashes := sendBundle.GenerateBNBTxs(&arg3, big.NewInt(1.5e8*1e9), arg3.Data, 1)
+		tx3b, revertTxHashes := sendBundle.GenerateBNBTxs(&arg3, big.NewInt(1.5e8*1e9), arg3.Data, 1, 0)
 		arg3.Contract = tmp
 		txs := append(tx1, tx2...)
 		txs = append(txs, tx3...)

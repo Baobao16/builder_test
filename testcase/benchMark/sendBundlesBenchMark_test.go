@@ -5,13 +5,14 @@ import (
 	"github.com/xkwang/sendBundle"
 	"github.com/xkwang/utils"
 	"log"
+	"math/big"
 	"testing"
 )
 
 // 压力测试函数
 // 持续发送bundles
 func BenchmarkSendBundles(b *testing.B) {
-	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferWBNBCode, conf.MedGasLimit)
+	arg := utils.UserTx(conf.RootPk, conf.WBNB, conf.TransferWBNBCode, conf.MedGasLimit, big.NewInt(conf.MinGasPrice))
 	// 循环执行测试函数
 	for i := 0; i < b.N; i++ {
 		// 在每次迭代中调用接口

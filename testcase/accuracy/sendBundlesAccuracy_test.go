@@ -527,14 +527,14 @@ func Test_p1_gasPrice_sort(t *testing.T) {
 	})
 
 	testCases := []struct {
-		Mempool_gasPrice int64
-		Bundle_gasPrice  int64
-		tx1              bool
-		tx1Status        string
-		tx2              bool
-		tx2Status        string
-		tx3              bool
-		tx3Status        string
+		MempoolGasPrice int64
+		BundleGasPrice  int64
+		tx1             bool
+		tx1Status       string
+		tx2             bool
+		tx2Status       string
+		tx3             bool
+		tx3Status       string
 	}{
 		{10, 1, true, conf.TxSucceed, false, conf.TxFailed, false, conf.TxFailed},
 		{5, 10, false, conf.TxFailed, true, conf.TxSucceed, true, conf.TxSucceed},
@@ -543,11 +543,11 @@ func Test_p1_gasPrice_sort(t *testing.T) {
 	for index, tc := range testCases {
 		t.Run("Priority given to transactions with high gasPrice 【nonce equal】"+strconv.Itoa(index), func(t *testing.T) {
 			t.Log("[Step-1] Root User Expose mem_pool transaction tx1")
-			tx1, _ := utils.SendLockMempool(conf.RootPk3, conf.WBNB, conf.TransferWBNBCode, conf.FMGasLimit, big.NewInt(tc.Mempool_gasPrice*conf.MinGasPrice), false, true, 0)
+			tx1, _ := utils.SendLockMempool(conf.RootPk3, conf.WBNB, conf.TransferWBNBCode, conf.FMGasLimit, big.NewInt(tc.MempoolGasPrice*conf.MinGasPrice), false, true, 0)
 
 			t.Log("[Step-2] User 1 bundle [tx1', tx2]")
 
-			userArg2 := utils.UserTx(conf.RootPk4, conf.WBNB, conf.TransferWBNBCode, conf.MedGasLimit, big.NewInt(tc.Bundle_gasPrice*conf.MinGasPrice))
+			userArg2 := utils.UserTx(conf.RootPk4, conf.WBNB, conf.TransferWBNBCode, conf.MedGasLimit, big.NewInt(tc.BundleGasPrice*conf.MinGasPrice))
 			txs, _ := sendBundle.GenerateBNBTxs(&userArg2, userArg2.SendAmount, userArg2.Data, 1, 0)
 
 			userArg := utils.UserTx(conf.RootPk3, conf.WBNB, conf.TransferWBNBCode, conf.MedGasLimit, big.NewInt(conf.MinGasPrice))
@@ -560,8 +560,6 @@ func Test_p1_gasPrice_sort(t *testing.T) {
 				log.Println("SendBundle failed: ", err.Error())
 			}
 			t.Log("[Step-3] Check result")
-
-			time.Sleep(6 * time.Second)
 			cbn, _ := userArg.Client.BlockNumber(userArg.Ctx)
 			testcase.UpdateUsrList(0, tx1, tc.tx1, tc.tx1Status)
 			testcase.UpdateUsrList(1, tx2, tc.tx2, tc.tx2Status)
